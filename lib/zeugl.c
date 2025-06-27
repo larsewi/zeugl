@@ -1,8 +1,4 @@
-#include "config.h"
 #include "zeugl.h"
+#include "config.h"
 
-#include <stdio.h>
-
-void PrintHello() {
-    printf("Hello Zeugl\n");
-}
+const char *zversion(void) { return PACKAGE_VERSION; }
