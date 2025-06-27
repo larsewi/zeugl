@@ -1,0 +1,17 @@
+AT_INIT
+AT_COLOR_TESTS
+
+m4_define([FIND_ZEUGL], [[set -x
+if test "x${AUTOTEST_PATH}" == "x${at_testdir}"; then
+    zeugl="${abs_top_builddir}/cli/zeugl"
+    compare="$(dirname ${zeugl})/.libs/lt-zeugl"
+else
+    LD_LIBRARY_PATH="${AUTOTEST_PATH}/../lib" export LD_LIBRARY_PATH
+    zeugl="${AUTOTEST_PATH}/zeugl"
+    compare="$(zeugl)"
+fi]])
+
+AT_SETUP([Test suite sanity check])
+AT_CHECK([echo "Hello Zeugl"], , [Hello Zeugl
+])
+AT_CLEANUP
