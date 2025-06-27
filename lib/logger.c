@@ -9,16 +9,16 @@
 
 #include "logger.h"
 
-static bool log_debug = false;
+static int log_level = LOG_LEVEL_NONE;
 
-void LoggerEnableDebug(void) { log_debug = true; }
+void LoggerLogLevelSet(int level) { log_level = level; }
 
 void LoggerLogMessage(int level, const char *file, int line, const char *format,
                       ...) {
   assert(file != NULL);
   assert(format != NULL);
 
-  if (!log_debug && (level == LOG_LEVEL_DEBUG)) {
+  if (level >= log_level) {
     return;
   }
 
@@ -44,6 +44,8 @@ void LoggerLogMessage(int level, const char *file, int line, const char *format,
     break;
   case LOG_LEVEL_ERROR:
     fprintf(stderr, "[%s:%d] Error: %s\n", file, line, msg);
+    break;
+  case LOG_LEVEL_NONE:
     break;
   }
 }

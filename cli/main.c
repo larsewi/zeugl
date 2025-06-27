@@ -11,11 +11,13 @@
   fprintf(stderr, "Usage: %s [-d] [-v] [-h] SOURCE DEST\n", prog);
 
 int main(int argc, char *argv[]) {
+  LoggerLogLevelSet(LOG_LEVEL_WARNING);
+
   int opt;
   while ((opt = getopt(argc, argv, "dvh")) != -1) {
     switch (opt) {
     case 'd':
-      LoggerEnableDebug();
+      LoggerLogLevelSet(LOG_LEVEL_DEBUG);
       break;
     case 'v':
       printf("%s %s\n", PACKAGE_NAME, zversion());

@@ -2,9 +2,10 @@
 #define __ZEUGL_LOGGER_H__
 
 enum {
-  LOG_LEVEL_DEBUG = 0,
+  LOG_LEVEL_DEBUG,
   LOG_LEVEL_WARNING,
   LOG_LEVEL_ERROR,
+  LOG_LEVEL_NONE,
 };
 
 #define LOG_DEBUG(...)                                                         \
@@ -14,7 +15,7 @@ enum {
 #define LOG_ERROR(...)                                                         \
   LoggerLogMessage(LOG_LEVEL_ERROR, __FILE__, __LINE__, __VA_ARGS__)
 
-void LoggerEnableDebug(void);
+void LoggerLogLevelSet(int level);
 
 void LoggerLogMessage(int level, const char *file, int line, const char *format,
                       ...);
