@@ -116,4 +116,5 @@ tests/package.m4
 tests/testsuite
 testsuite.log
 zeugl
+build/*
 .vscode/*

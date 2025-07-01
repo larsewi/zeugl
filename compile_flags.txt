@@ -1,2 +1,2 @@
--I./
+-include config.h
 -Ilib/
