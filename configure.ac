@@ -17,6 +17,7 @@ AC_PROG_CPP
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
+AC_PROG_MKDIR_P
 AM_PROG_AR
 
 LT_INIT
@@ -24,25 +25,14 @@ LT_INIT
 # Checks for libraries.
 
 # Checks for header files.
-AC_CHECK_HEADER_STDBOOL
-AC_FUNC_ALLOCA
-AC_CHECK_HEADERS([fcntl.h inttypes.h libintl.h malloc.h stdint.h unistd.h])
+AC_CHECK_HEADERS([fcntl.h unistd.h sys/file.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
-AC_TYPE_INT16_T
-AC_TYPE_INT32_T
-AC_TYPE_INT8_T
 AC_TYPE_SIZE_T
-AC_TYPE_SSIZE_T
-AC_TYPE_UINT16_T
-AC_TYPE_UINT32_T
-AC_TYPE_UINT8_T
-AC_CHECK_TYPES([ptrdiff_t])
+AC_TYPE_MODE_T
 
 # Checks for library functions.
-AC_FUNC_MALLOC
-AC_FUNC_REALLOC
-AC_CHECK_FUNCS([memset strerror])
+AC_CHECK_FUNCS([strerror])
 
 AC_CONFIG_TESTDIR([tests])
 AC_CONFIG_FILES([Makefile
