@@ -18,7 +18,7 @@ void LoggerLogMessage(int level, const char *file, int line, const char *format,
   assert(file != NULL);
   assert(format != NULL);
 
-  if (level >= log_level) {
+  if (level < log_level) {
     return;
   }
 

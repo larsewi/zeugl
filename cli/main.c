@@ -34,14 +34,16 @@ int main(int argc, char *argv[]) {
     PRINT_USAGE(argv[0]);
     return EXIT_FAILURE;
   }
-  __attribute__((unused)) const char *src = argv[argc++];
+  const char *src = argv[optind++];
+  LOG_DEBUG("Source file '%s'", src);
 
   if (optind >= argc) {
     fprintf(stderr, "Missing destination file operand after '%s'\n", src);
     PRINT_USAGE(argv[0]);
     return EXIT_FAILURE;
   }
-  __attribute__((unused)) const char *dst = argv[argc++];
+  const char *dst = argv[optind++];
+  LOG_DEBUG("Destination file '%s'", dst);
 
   return EXIT_SUCCESS;
 }
