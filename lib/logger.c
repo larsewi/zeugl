@@ -1,5 +1,3 @@
-#include "config.h"
-
 #include <assert.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -9,7 +7,7 @@
 
 #include "logger.h"
 
-static int log_level = LOG_LEVEL_NONE;
+static int log_level = LOG_LEVEL_WARNING;
 
 void LoggerLogLevelSet(int level) { log_level = level; }
 

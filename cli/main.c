@@ -1,19 +1,28 @@
+#include "config.h"
+
+#include <errno.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "logger.h"
 #include "zeugl.h"
 
 #define PRINT_USAGE(prog)                                                      \
-  fprintf(stderr, "Usage: %s [-d] [-v] [-h] SOURCE DEST\n", prog);
+  fprintf(stderr, "Usage: %s [-f INPUT_FILE] [-d] [-v] [-h] OUTPUT_FILE\n",    \
+          prog);
 
 int main(int argc, char *argv[]) {
-  LoggerLogLevelSet(LOG_LEVEL_WARNING);
+  const char *input_file = "-";
 
   int opt;
-  while ((opt = getopt(argc, argv, "dvh")) != -1) {
+  while ((opt = getopt(argc, argv, "f:dvh")) != -1) {
     switch (opt) {
+    case 'f':
+      input_file = optarg;
+      break;
     case 'd':
       LoggerLogLevelSet(LOG_LEVEL_DEBUG);
       break;
@@ -30,20 +39,21 @@ int main(int argc, char *argv[]) {
   }
 
   if (optind >= argc) {
-    fprintf(stderr, "Missing source file operand\n");
+    fprintf(stderr, "Missing output file argument\n");
     PRINT_USAGE(argv[0]);
     return EXIT_FAILURE;
   }
-  const char *src = argv[optind++];
-  LOG_DEBUG("Source file '%s'", src);
+  const char *output_file = argv[optind++];
 
-  if (optind >= argc) {
-    fprintf(stderr, "Missing destination file operand after '%s'\n", src);
-    PRINT_USAGE(argv[0]);
+  LOG_DEBUG("Input file '%s'", input_file);
+  LOG_DEBUG("Output file '%s'", output_file);
+
+  int input_fd = zopen(output_file, O_CREAT | O_WRONLY, 0644);
+  if (input_fd < 0) {
+    LOG_ERROR("Failed to open file '%s': zopen(): %s", output_file,
+              strerror(errno));
     return EXIT_FAILURE;
   }
-  const char *dst = argv[optind++];
-  LOG_DEBUG("Destination file '%s'", dst);
 
   return EXIT_SUCCESS;
 }

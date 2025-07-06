@@ -1,5 +1,5 @@
 AM_CFLAGS = -Wall -Wextra -Wconversion -Wformat
-AM_CPPFLAGS = -include $(top_builddir)/config.h -I$(top_srcdir)/lib/
+AM_CPPFLAGS = -I$(top_srcdir)/ -I$(top_srcdir)/lib/
 
 bin_PROGRAMS = zeugl
 
