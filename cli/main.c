@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
       LoggerLogLevelSet(LOG_LEVEL_DEBUG);
       break;
     case 'v':
-      printf("%s %s\n", PACKAGE_NAME, zversion());
+      printf("%s\n", PACKAGE_STRING);
       return EXIT_SUCCESS;
     case 'h':
       PRINT_USAGE(argv[0]);
@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
   LOG_DEBUG("Input file '%s'", input_file);
   LOG_DEBUG("Output file '%s'", output_file);
 
-  int input_fd = zopen(output_file, O_CREAT | O_WRONLY, 0644);
+  int input_fd = zopen(output_file);
   if (input_fd < 0) {
     LOG_ERROR("Failed to open file '%s': zopen(): %s", output_file,
               strerror(errno));
