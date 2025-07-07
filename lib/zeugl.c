@@ -62,6 +62,50 @@ static int filecopy(int src, int dst) {
   return 0;
 }
 
+static int atomic_filecopy(int src, int dst) {
+  LOG_DEBUG("Retrieving information about source file...");
+  struct stat sb_before;
+  int ret = fstat(src, &sb_before);
+  if (ret != 0) {
+    LOG_ERROR("Failed to retrieve information about source file: %s",
+              strerror(errno));
+    return -1;
+  }
+
+  LOG_DEBUG("Requesting shared lock for source file...");
+  ret = flock(src, LOCK_SH);
+  if (ret != 0) {
+    LOG_ERROR("Failed to get shared lock for source file: %s", strerror(errno));
+    return -1;
+  }
+
+  LOG_DEBUG("Copying contents from source file to destination file...");
+  ret = filecopy(src, dst);
+  if (ret != 0) {
+    LOG_ERROR("Failed to copy contents from source file to destination file");
+    return -1;
+  }
+
+  LOG_DEBUG("Retrieving information about source file...", src);
+  struct stat sb_after;
+  ret = fstat(src, &sb_after);
+  if (ret != 0) {
+    LOG_ERROR("Failed to retrieve information about source file: %s",
+              strerror(errno));
+    return -1;
+  }
+
+  LOG_DEBUG("Checking if source file was modified during file copy...");
+  if ((sb_before.st_mtim.tv_sec != sb_after.st_mtim.tv_sec) ||
+      (sb_before.st_mtim.tv_nsec != sb_after.st_mtim.tv_nsec)) {
+    LOG_WARNING(
+        "Source file was modified while copying contents to destination file");
+    return 1;
+  }
+
+  return 0;
+}
+
 int zopen(const char *orig_fname) {
   assert(orig_fname != NULL);
 
@@ -95,33 +139,7 @@ int zopen(const char *orig_fname) {
     }
   }
 
-  LOG_DEBUG("Retrieving information about original file '%s'...", orig_fname);
-  struct stat sb;
-  ret = fstat(orig_fd, &sb);
-  if (ret != 0) {
-    LOG_ERROR("Failed to retrieve information about original file '%s': %s",
-              orig_fname, strerror(errno));
-    goto FAIL;
-  }
-
-  LOG_DEBUG("Requesting shared lock for file '%s'...", orig_fname);
-  ret = flock(orig_fd, LOCK_SH);
-  if (ret != 0) {
-    LOG_ERROR("Failed to get shared lock for file '%s': %s", orig_fname,
-              strerror(errno));
-    goto FAIL;
-  }
-
-  LOG_DEBUG(
-      "Copying contents from original file '%s' to temporary file '%s'...",
-      orig_fname, temp_fname);
-  ret = filecopy(orig_fd, temp_fd);
-  if (ret != 0) {
-    LOG_ERROR("Failed to copy contents from original file '%s' to temporary "
-              "file '%s'",
-              orig_fname, temp_fname);
-    goto FAIL;
-  }
+  ret = atomic_filecopy(orig_fd, temp_fd);
 
 FAIL:
   LOG_DEBUG("Releasing shared lock for file '%s'...", orig_fname);
