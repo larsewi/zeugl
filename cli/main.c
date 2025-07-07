@@ -48,12 +48,13 @@ int main(int argc, char *argv[]) {
   LOG_DEBUG("Input file '%s'", input_file);
   LOG_DEBUG("Output file '%s'", output_file);
 
-  int input_fd = zopen(output_file);
-  if (input_fd < 0) {
+  int fd = zopen(output_file);
+  if (fd < 0) {
     LOG_ERROR("Failed to open file '%s': zopen(): %s", output_file,
               strerror(errno));
     return EXIT_FAILURE;
   }
 
+  close(fd);
   return EXIT_SUCCESS;
 }
