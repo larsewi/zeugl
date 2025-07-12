@@ -1,7 +1,5 @@
 #include "config.h"
 
-#include <asm-generic/errno-base.h>
-#include <asm-generic/errno.h>
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -17,6 +15,14 @@
 
 #include "logger.h"
 #include "zeugl.h"
+
+struct zfile {
+  char *fname;
+  int fd;
+  struct zfile *next;
+};
+
+static struct zfile *open_files = NULL;
 
 static int filecopy(int src, int dst) {
   char buffer[4096];
@@ -119,23 +125,29 @@ FAIL:
 int zopen(const char *orig_fname) {
   assert(orig_fname != NULL);
 
-  int temp_fd = -1, orig_fd = -1;
+  struct zfile *temp = NULL;
+  int orig_fd = -1;
 
-  char temp_fname[PATH_MAX];
-  if ((strlen(orig_fname) + strlen(".XXXXXX.tmp")) >= sizeof(temp_fname)) {
-    errno = ENOBUFS;
-    LOG_ERROR("Failed to create template name for temporary file: %s",
-              strerror(errno));
+  temp = calloc(1, sizeof(struct zfile));
+  if (temp == NULL) {
+    LOG_ERROR("Failed to allocate memory: %s", strerror(errno));
     goto FAIL;
   }
-  char *p = stpcpy(temp_fname, orig_fname);
+  temp->fd = -1;
+
+  temp->fname = malloc(strlen(orig_fname) + strlen(".XXXXXX.tmp") + 1);
+  if (temp->fname == NULL) {
+    LOG_ERROR("Failed to allocate memory: %s", strerror(errno));
+    goto FAIL;
+  }
+  char *p = stpcpy(temp->fname, orig_fname);
   p = stpcpy(p, ".XXXXXX.tmp");
 
-  LOG_DEBUG("Creating temporary file from template '%s'...", temp_fname);
-  temp_fd = mkstemps(temp_fname, strlen(".tmp"));
-  if (temp_fd < 0) {
+  LOG_DEBUG("Creating temporary file from template '%s'...", temp->fname);
+  temp->fd = mkstemps(temp->fname, strlen(".tmp"));
+  if (temp->fd < 0) {
     LOG_ERROR("Failed to create temporary file from template name '%s': %s",
-              temp_fname, strerror(errno));
+              temp->fname, strerror(errno));
     goto FAIL;
   }
 
@@ -150,28 +162,54 @@ int zopen(const char *orig_fname) {
   } else {
     LOG_DEBUG(
         "Copying content from original file '%s' to temporary file '%s'...",
-        orig_fname, temp_fname);
-    if (atomic_filecopy(orig_fd, temp_fd) != 0) {
+        orig_fname, temp->fname);
+    if (atomic_filecopy(orig_fd, temp->fd) != 0) {
       LOG_ERROR("Failed to copy content from original file '%s' to temporary "
                 "file '%s': %s",
-                orig_fname, temp_fname, strerror(errno));
+                orig_fname, temp->fname, strerror(errno));
       goto FAIL;
     }
   }
 
-  if (orig_fd >= 0) {
-    close(orig_fd);
-  }
-  return temp_fd;
+  LOG_DEBUG("Closing original file '%s'...", orig_fname);
+  close(orig_fd);
+
+  temp->next = open_files;
+  open_files = temp;
+
+  return temp->fd;
 
 FAIL:
-  if (temp_fd >= 0) {
-    close(temp_fd);
+  if (temp != NULL) {
+    free(temp->fname);
+    if (temp->fd >= 0) {
+      close(temp->fd);
+    }
+    free(temp);
   }
+
   if (orig_fd >= 0) {
     close(orig_fd);
   }
+
   return -1;
 }
 
-int zclose(int fd) { return -1; }
+int zclose(int fd) {
+  if (fd == -1) {
+    return 0; /* no-op */
+  }
+
+  for (struct zfile *f = open_files; f != NULL; f = f->next) {
+    if (f->fd != fd) {
+      continue;
+    }
+
+    close(f->fd);
+    free(f->fname);
+    free(f);
+
+    return 0;
+  }
+  return -1;
+}

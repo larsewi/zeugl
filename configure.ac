@@ -29,10 +29,13 @@ AC_CHECK_HEADERS([fcntl.h unistd.h sys/file.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_SIZE_T
+AC_TYPE_SSIZE_T
 AC_TYPE_MODE_T
 
 # Checks for library functions.
-AC_CHECK_FUNCS([strerror])
+AC_FUNC_MALLOC
+AC_CHECK_FUNCS([strerror
+                stpcpy])
 
 AC_CONFIG_TESTDIR([tests])
 AC_CONFIG_FILES([Makefile
