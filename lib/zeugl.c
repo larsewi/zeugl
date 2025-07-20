@@ -140,8 +140,7 @@ int zopen(const char *orig_fname) {
     LOG_ERROR("Failed to allocate memory: %s", strerror(errno));
     goto FAIL;
   }
-  char *p = stpcpy(temp->fname, orig_fname);
-  p = stpcpy(p, ".XXXXXX.tmp");
+  stpcpy(stpcpy(temp->fname, orig_fname), ".XXXXXX.tmp");
 
   LOG_DEBUG("Creating temporary file from template '%s'...", temp->fname);
   temp->fd = mkstemps(temp->fname, strlen(".tmp"));
@@ -195,21 +194,71 @@ FAIL:
   return -1;
 }
 
-int zclose(int fd) {
-  if (fd == -1) {
-    return 0; /* no-op */
+int create_mole(const char *oldname) {
+  int ret = -1;
+
+  char *newname = malloc(strlen(oldname) + strlen(".mole") + 1);
+  if (newname == NULL) {
+    LOG_ERROR("Failed to allocate memory: %s", strerror(errno));
+    goto FAIL;
+  }
+  stpcpy(stpcpy(newname, oldname), ".mole");
+
+  LOG_DEBUG("Renaming '%s' to '%s'...", oldname, newname);
+  if (rename(oldname, newname) != 0) {
+    LOG_ERROR("Failed to rename '%s' to '%s': %s", oldname, newname, strerror(errno));
+    goto FAIL;
   }
 
-  for (struct zfile *f = open_files; f != NULL; f = f->next) {
-    if (f->fd != fd) {
-      continue;
-    }
+  ret = 0;
 
-    close(f->fd);
-    free(f->fname);
-    free(f);
+FAIL:
+  free(newname);
+  return ret;
+}
 
+int wack_mole(const char *fname) {
+  return 0;
+}
+
+int zclose(int fd) {
+  /* Consider -1 a no-op */
+  if (fd == -1) {
     return 0;
   }
+
+  int found = 0;
+  struct zfile *f;
+  for (f = open_files; (f != NULL) && (found == 0); f = f->next) {
+    if (f->fd == fd) {
+      found = 1;
+    }
+  }
+
+  /* We don't need the file descriptor anymore */
+  LOG_DEBUG("Closing file descriptor for file '%s'...", f->fname);
+  if (close(f->fd) != 0) {
+    LOG_ERROR("Failed to close file");
+    return -1;
+  }
+
+  /* If this file descriptor was not opened with zopen(), then we don't do the
+   * wack-a-mole algorithm. */
+  if (found == 0) {
+    return 0;
+  }
+
+  LOG_DEBUG("Creating mole...");
+  if (create_mole(f->fname) != 0) {
+    LOG_ERROR("Failed to create mole");
+    free(f->fname);
+    free(f);
+    return -1;
+  }
+
+  free(f->fname);
+  free(f);
+
+  return 0;
   return -1;
 }
