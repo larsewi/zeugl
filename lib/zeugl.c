@@ -31,7 +31,6 @@ static int filecopy(int src, int dst) {
 
   int eof = 0;
   do {
-    LOG_DEBUG("Reading from source file...");
     size_t n_read = 0;
     do {
       ssize_t ret = read(src, buffer + n_read, sizeof(buffer) - n_read);
@@ -41,7 +40,8 @@ static int filecopy(int src, int dst) {
           continue;
         }
 
-        LOG_ERROR("Failed to read from file: %s", strerror(errno));
+        LOG_DEBUG("Failed to read from source file (fd = %d): %s", src,
+                  strerror(errno));
         return -1;
       }
 
@@ -50,8 +50,8 @@ static int filecopy(int src, int dst) {
 
       n_read += (size_t)ret;
     } while (!eof && (n_read <= sizeof(buffer)));
+    LOG_DEBUG("Read %zu bytes from source file (fd = %d)", n_read, src);
 
-    LOG_DEBUG("Writing to destination file...");
     size_t n_written = 0;
     do {
       ssize_t ret = write(dst, buffer + n_written, n_read - n_written);
@@ -61,12 +61,14 @@ static int filecopy(int src, int dst) {
           continue;
         }
 
-        LOG_ERROR("Failed to write to file: %s", strerror(errno));
+        LOG_DEBUG("Failed to write content to destination file (fd = %d): %s",
+                  dst, strerror(errno));
         return -1;
       }
 
       n_written += (size_t)ret;
     } while (n_written < n_read);
+    LOG_DEBUG("Wrote %zu bytes to destination file (fd = %d)", n_written, dst);
   } while (!eof);
 
   return 0;
@@ -75,51 +77,60 @@ static int filecopy(int src, int dst) {
 static int atomic_filecopy(int src, int dst) {
   int ret = 0;
 
-  LOG_DEBUG("Retrieving information about source file...");
   struct stat sb_before;
   if (fstat(src, &sb_before) != 0) {
-    LOG_ERROR("Failed to retrieve information about source file: %s",
+    LOG_DEBUG("Failed to retrieve information about source file (fd = %d): %s",
+              src, strerror(errno));
+    return -1;
+  }
+  LOG_DEBUG("Retrieved information about source file (fd = %d): Before copy",
+            src);
+
+  if (flock(src, LOCK_SH) != 0) {
+    LOG_DEBUG("Failed to get shared lock for source file (fd = %d): %s", src,
               strerror(errno));
     return -1;
   }
+  LOG_DEBUG("Requested shared lock for source file (fd = %d)", src);
 
-  LOG_DEBUG("Requesting shared lock for source file...");
-  if (flock(src, LOCK_SH) != 0) {
-    LOG_ERROR("Failed to get shared lock for source file: %s", strerror(errno));
-    return -1;
-  }
-
-  LOG_DEBUG("Copying contents from source file to destination file...");
   if (filecopy(src, dst) != 0) {
-    LOG_ERROR("Failed to copy contents from source file to destination file");
+    LOG_DEBUG("Failed to copy content from source file (fd = %d) to "
+              "destination file (fd = %d)",
+              src, dst);
     goto FAIL;
   }
+  LOG_DEBUG(
+      "Copied content from source file (fd = %d) to destination file (fd = %d)",
+      src, dst);
 
-  LOG_DEBUG("Retrieving information about source file...", src);
   struct stat sb_after;
   if (fstat(src, &sb_after) != 0) {
-    LOG_ERROR("Failed to retrieve information about source file: %s",
-              strerror(errno));
+    LOG_DEBUG("Failed to retrieve information about source file (fd = %d): %s",
+              src, strerror(errno));
     goto FAIL;
   }
+  LOG_DEBUG("Retrieved information about source file (fd = %d): After copy",
+            src);
 
-  LOG_DEBUG("Checking if source file was modified during file copy...");
   if ((sb_before.st_mtim.tv_sec != sb_after.st_mtim.tv_sec) ||
       (sb_before.st_mtim.tv_nsec != sb_after.st_mtim.tv_nsec)) {
-    LOG_WARNING(
-        "Source file was modified while copying contents to destination file");
+    LOG_DEBUG("Source file (fd = %d) was modified while copying contents to "
+              "destination file (%d)",
+              src, dst);
     errno = EBUSY;
     goto FAIL;
   }
+  LOG_DEBUG("Source file (fd = %d) appears to not be modified during file copy",
+            src);
 
   ret = 0;
 FAIL:
-  LOG_DEBUG("Releasing shared lock for source file...");
   if (flock(src, LOCK_UN) != 0) {
-    LOG_ERROR("Failed to release shared lock for source file: %s",
-              strerror(errno));
+    LOG_DEBUG("Failed to release shared lock for source file (fd = %d): %s",
+              src, strerror(errno));
     return -1;
   }
+  LOG_DEBUG("Released shared lock for source file (fd = %d)", src);
 
   return ret;
 }
@@ -132,54 +143,59 @@ int zopen(const char *fname) {
 
   file = calloc(1, sizeof(struct zfile));
   if (file == NULL) {
-    LOG_ERROR("Failed to allocate memory: %s", strerror(errno));
+    LOG_DEBUG("Failed to allocate memory for zfile: %s", strerror(errno));
     return -1;
   }
   file->fd = -1;
 
   file->orig = strdup(fname);
   if (file->orig == NULL) {
-    LOG_ERROR("Failed to allocate memory: %s", strerror(errno));
+    LOG_DEBUG("Failed to allocate memory for copy of original filename: %s",
+              strerror(errno));
     goto FAIL;
   }
 
   file->temp = malloc(strlen(file->orig) + strlen(".XXXXXX.tmp") + 1);
   if (file->temp == NULL) {
-    LOG_ERROR("Failed to allocate memory: %s", strerror(errno));
+    LOG_DEBUG("Failed to allocate memory for temporary filename: %s",
+              strerror(errno));
     goto FAIL;
   }
-  stpcpy(stpcpy(file->temp, file->orig), ".XXXXXX.tmp");
 
-  LOG_DEBUG("Creating temporary file from template '%s'...", file->temp);
+  stpcpy(stpcpy(file->temp, file->orig), ".XXXXXX.tmp");
+  LOG_DEBUG("Generated template for temporary filename '%s'", file->temp);
+
   file->fd = mkstemps(file->temp, strlen(".tmp"));
   if (file->fd < 0) {
-    LOG_ERROR("Failed to create temporary file from template name '%s': %s",
-              file->temp, strerror(errno));
+    LOG_DEBUG("Failed to create temporary file: %s", strerror(errno));
     goto FAIL;
   }
+  LOG_DEBUG("Created temporary file '%s' (fd = %d)", file->temp, file->fd);
 
-  LOG_DEBUG("Opening original file '%s' in read-only mode...", file->orig);
   fd = open(file->orig, O_RDONLY);
   if (fd < 0) {
     if (errno != ENOENT) {
-      LOG_ERROR("Failed to open original file '%s': %s", file->orig,
-                strerror(errno));
+      LOG_DEBUG("Failed to open original file '%s' in read-only mode: %s",
+                file->orig, strerror(errno));
       goto FAIL;
     }
   } else {
-    LOG_DEBUG(
-        "Copying content from original file '%s' to temporary file '%s'...",
-        file->orig, file->temp);
+    LOG_DEBUG("Opened original file '%s' (fd = %d) in read-only mode",
+              file->orig, fd);
+
     if (atomic_filecopy(fd, file->fd) != 0) {
-      LOG_ERROR("Failed to copy content from original file '%s' to temporary "
-                "file '%s': %s",
-                file->orig, file->temp, strerror(errno));
+      LOG_DEBUG("Failed to copy content from original file '%s' (fd = %d) to "
+                "temporary file '%s' (fd = %d): %s",
+                file->orig, fd, file->temp, file->fd, strerror(errno));
       goto FAIL;
     }
+    LOG_DEBUG("Copied content from original file '%s' (fd = %d) to temporary "
+              "file '%s' (fd = %d)",
+              file->orig, fd, file->temp, file->fd);
   }
 
-  LOG_DEBUG("Closing original file '%s'...", file->orig);
   close(fd);
+  LOG_DEBUG("Closed original file '%s' (fd = %d)", file->orig, fd);
 
   file->next = open_files;
   open_files = file;
@@ -187,6 +203,7 @@ int zopen(const char *fname) {
   return file->fd;
 
 FAIL:
+  LOG_DEBUG("Entered failure clean-up");
   if (file != NULL) {
     free(file->orig);
     free(file->temp);
@@ -206,17 +223,20 @@ FAIL:
 int create_mole(struct zfile *file) {
   file->mole = malloc(strlen(file->temp) + strlen(".mole") + 1);
   if (file->mole == NULL) {
-    LOG_ERROR("Failed to allocate memory: %s", strerror(errno));
-    return -1;
-  }
-  stpcpy(stpcpy(file->mole, file->temp), ".mole");
-
-  LOG_DEBUG("Renaming '%s' to '%s'...", file->temp, file->mole);
-  if (rename(file->temp, file->mole) != 0) {
-    LOG_ERROR("Failed to rename '%s' to '%s': %s", file->temp, file->mole,
+    LOG_DEBUG("Failed to allocate memory for mole filename: %s",
               strerror(errno));
     return -1;
   }
+
+  stpcpy(stpcpy(file->mole, file->temp), ".mole");
+  LOG_DEBUG("Generated filename for mole '%s'", file->mole);
+
+  if (rename(file->temp, file->mole) != 0) {
+    LOG_DEBUG("Failed to rename '%s' to '%s': %s", file->temp, file->mole,
+              strerror(errno));
+    return -1;
+  }
+  LOG_DEBUG("Renamed '%s' to '%s'", file->temp, file->mole);
 
   return 0;
 }
@@ -229,31 +249,37 @@ int zclose(int fd) {
     return 0;
   }
 
+  /* We don't need the file descriptor anymore */
+  if (close(fd) != 0) {
+    LOG_DEBUG("Failed to close file (fd = %d)", fd);
+    return -1;
+  }
+  LOG_DEBUG("Closed file (fd = %d)", fd);
+
+  LOG_DEBUG("Looking for file with matching file descriptor %d...", fd);
   struct zfile *file = open_files;
   while ((file != NULL) && (file->fd != fd)) {
     file = file->next;
   }
 
-  /* We don't need the file descriptor anymore */
-  LOG_DEBUG("Closing file descriptor %d...", fd);
-  if (close(fd) != 0) {
-    LOG_ERROR("Failed to close file");
-    return -1;
-  }
-
   if ((file == NULL) || (file->fd != fd)) {
-    LOG_DEBUG("This file was not opened with zopen()");
+    LOG_DEBUG("Did not find a file with matching file descriptor (fd = %d): "
+              "This file was not opened with zopen()",
+              fd);
     /* This file was not opened with zopen(). Hence, no need to perform the
      * wack-a-mole. */
     return 0;
   }
-  LOG_DEBUG("This file was opened with zopen()");
+  LOG_DEBUG("Found file '%s' with matching file descriptor (fd = %d): "
+            "This file was opened with zopen()",
+            file->temp, file->fd);
 
-  LOG_DEBUG("Creating mole...");
   int ret = create_mole(file);
   if (ret != 0) {
-    LOG_ERROR("Failed to create mole");
+    LOG_DEBUG("Failed to create mole from temporary file '%s'", file->temp);
   }
+  LOG_DEBUG("Created a mole '%s' from temporary file '%s' (fd = %d)",
+            file->mole, file->temp, file->fd);
 
   free(file->orig);
   free(file->temp);

@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
       input_file = optarg;
       break;
     case 'd':
-      LoggerLogLevelSet(LOG_LEVEL_DEBUG);
+      LoggerEnable();
       break;
     case 'v':
       printf("%s\n", PACKAGE_STRING);
@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
 
   int fd = zopen(output_file);
   if (fd < 0) {
-    LOG_ERROR("Failed to open file '%s': zopen(): %s", output_file,
+    LOG_DEBUG("Failed to open file '%s': zopen(): %s", output_file,
               strerror(errno));
     return EXIT_FAILURE;
   }
