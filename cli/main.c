@@ -50,11 +50,17 @@ int main(int argc, char *argv[]) {
 
   int fd = zopen(output_file);
   if (fd < 0) {
-    LOG_DEBUG("Failed to open file '%s': zopen(): %s", output_file,
+    LOG_DEBUG("Failed to begin transaction for file '%s': %s", output_file,
               strerror(errno));
     return EXIT_FAILURE;
   }
+  LOG_DEBUG("Began transaction for file '%s' (fd = %d)", output_file, fd);
 
-  zclose(fd);
+  if (zclose(fd) != 0) {
+      LOG_DEBUG("Failed to commit transaction for file '%s' (fd = %d)", output_file, fd);
+      return EXIT_FAILURE;
+  }
+  LOG_DEBUG("Committed transaction for file '%s' (fd = %d)", output_file, fd);
+
   return EXIT_SUCCESS;
 }
