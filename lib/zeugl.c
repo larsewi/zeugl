@@ -17,7 +17,9 @@
 #include "zeugl.h"
 
 struct zfile {
-  char *fname;
+  char *orig;
+  char *temp;
+  char *mole;
   int fd;
   struct zfile *next;
 };
@@ -122,104 +124,104 @@ FAIL:
   return ret;
 }
 
-int zopen(const char *orig_fname) {
-  assert(orig_fname != NULL);
+int zopen(const char *fname) {
+  assert(fname != NULL);
 
-  struct zfile *temp = NULL;
-  int orig_fd = -1;
+  struct zfile *file = NULL;
+  int fd = -1;
 
-  temp = calloc(1, sizeof(struct zfile));
-  if (temp == NULL) {
+  file = calloc(1, sizeof(struct zfile));
+  if (file == NULL) {
+    LOG_ERROR("Failed to allocate memory: %s", strerror(errno));
+    return -1;
+  }
+  file->fd = -1;
+
+  file->orig = strdup(fname);
+  if (file->orig == NULL) {
     LOG_ERROR("Failed to allocate memory: %s", strerror(errno));
     goto FAIL;
   }
-  temp->fd = -1;
 
-  temp->fname = malloc(strlen(orig_fname) + strlen(".XXXXXX.tmp") + 1);
-  if (temp->fname == NULL) {
+  file->temp = malloc(strlen(file->orig) + strlen(".XXXXXX.tmp") + 1);
+  if (file->temp == NULL) {
     LOG_ERROR("Failed to allocate memory: %s", strerror(errno));
     goto FAIL;
   }
-  stpcpy(stpcpy(temp->fname, orig_fname), ".XXXXXX.tmp");
+  stpcpy(stpcpy(file->temp, file->orig), ".XXXXXX.tmp");
 
-  LOG_DEBUG("Creating temporary file from template '%s'...", temp->fname);
-  temp->fd = mkstemps(temp->fname, strlen(".tmp"));
-  if (temp->fd < 0) {
+  LOG_DEBUG("Creating temporary file from template '%s'...", file->temp);
+  file->fd = mkstemps(file->temp, strlen(".tmp"));
+  if (file->fd < 0) {
     LOG_ERROR("Failed to create temporary file from template name '%s': %s",
-              temp->fname, strerror(errno));
+              file->temp, strerror(errno));
     goto FAIL;
   }
 
-  LOG_DEBUG("Opening original file '%s' in read-only mode...", orig_fname);
-  orig_fd = open(orig_fname, O_RDONLY);
-  if (orig_fd < 0) {
+  LOG_DEBUG("Opening original file '%s' in read-only mode...", file->orig);
+  fd = open(file->orig, O_RDONLY);
+  if (fd < 0) {
     if (errno != ENOENT) {
-      LOG_ERROR("Failed to open original file '%s': %s", orig_fname,
+      LOG_ERROR("Failed to open original file '%s': %s", file->orig,
                 strerror(errno));
       goto FAIL;
     }
   } else {
     LOG_DEBUG(
         "Copying content from original file '%s' to temporary file '%s'...",
-        orig_fname, temp->fname);
-    if (atomic_filecopy(orig_fd, temp->fd) != 0) {
+        file->orig, file->temp);
+    if (atomic_filecopy(fd, file->fd) != 0) {
       LOG_ERROR("Failed to copy content from original file '%s' to temporary "
                 "file '%s': %s",
-                orig_fname, temp->fname, strerror(errno));
+                file->orig, file->temp, strerror(errno));
       goto FAIL;
     }
   }
 
-  LOG_DEBUG("Closing original file '%s'...", orig_fname);
-  close(orig_fd);
+  LOG_DEBUG("Closing original file '%s'...", file->orig);
+  close(fd);
 
-  temp->next = open_files;
-  open_files = temp;
+  file->next = open_files;
+  open_files = file;
 
-  return temp->fd;
+  return file->fd;
 
 FAIL:
-  if (temp != NULL) {
-    free(temp->fname);
-    if (temp->fd >= 0) {
-      close(temp->fd);
+  if (file != NULL) {
+    free(file->orig);
+    free(file->temp);
+    if (file->fd >= 0) {
+      close(file->fd);
     }
-    free(temp);
+    free(file);
   }
 
-  if (orig_fd >= 0) {
-    close(orig_fd);
+  if (fd >= 0) {
+    close(fd);
   }
 
   return -1;
 }
 
-int create_mole(const char *oldname) {
-  int ret = -1;
-
-  char *newname = malloc(strlen(oldname) + strlen(".mole") + 1);
-  if (newname == NULL) {
+int create_mole(struct zfile *file) {
+  file->mole = malloc(strlen(file->temp) + strlen(".mole") + 1);
+  if (file->mole == NULL) {
     LOG_ERROR("Failed to allocate memory: %s", strerror(errno));
-    goto FAIL;
+    return -1;
   }
-  stpcpy(stpcpy(newname, oldname), ".mole");
+  stpcpy(stpcpy(file->mole, file->temp), ".mole");
 
-  LOG_DEBUG("Renaming '%s' to '%s'...", oldname, newname);
-  if (rename(oldname, newname) != 0) {
-    LOG_ERROR("Failed to rename '%s' to '%s': %s", oldname, newname, strerror(errno));
-    goto FAIL;
+  LOG_DEBUG("Renaming '%s' to '%s'...", file->temp, file->mole);
+  if (rename(file->temp, file->mole) != 0) {
+    LOG_ERROR("Failed to rename '%s' to '%s': %s", file->temp, file->mole,
+              strerror(errno));
+    return -1;
   }
 
-  ret = 0;
-
-FAIL:
-  free(newname);
-  return ret;
-}
-
-int wack_mole(const char *fname) {
   return 0;
 }
+
+int wack_mole(const char *fname) { return 0; }
 
 int zclose(int fd) {
   /* Consider -1 a no-op */
@@ -227,38 +229,36 @@ int zclose(int fd) {
     return 0;
   }
 
-  int found = 0;
-  struct zfile *f;
-  for (f = open_files; (f != NULL) && (found == 0); f = f->next) {
-    if (f->fd == fd) {
-      found = 1;
-    }
+  struct zfile *file = open_files;
+  while ((file != NULL) && (file->fd != fd)) {
+    file = file->next;
   }
 
   /* We don't need the file descriptor anymore */
-  LOG_DEBUG("Closing file descriptor for file '%s'...", f->fname);
-  if (close(f->fd) != 0) {
+  LOG_DEBUG("Closing file descriptor %d...", fd);
+  if (close(fd) != 0) {
     LOG_ERROR("Failed to close file");
     return -1;
   }
 
-  /* If this file descriptor was not opened with zopen(), then we don't do the
-   * wack-a-mole algorithm. */
-  if (found == 0) {
+  if ((file == NULL) || (file->fd != fd)) {
+    LOG_DEBUG("This file was not opened with zopen()");
+    /* This file was not opened with zopen(). Hence, no need to perform the
+     * wack-a-mole. */
     return 0;
   }
+  LOG_DEBUG("This file was opened with zopen()");
 
   LOG_DEBUG("Creating mole...");
-  if (create_mole(f->fname) != 0) {
+  int ret = create_mole(file);
+  if (ret != 0) {
     LOG_ERROR("Failed to create mole");
-    free(f->fname);
-    free(f);
-    return -1;
   }
 
-  free(f->fname);
-  free(f);
+  free(file->orig);
+  free(file->temp);
+  free(file->mole);
+  free(file);
 
-  return 0;
-  return -1;
+  return ret;
 }
