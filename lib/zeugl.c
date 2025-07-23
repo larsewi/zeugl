@@ -85,7 +85,7 @@ static int atomic_filecopy(int src, int dst) {
               src, strerror(errno));
     return -1;
   }
-  LOG_DEBUG("Retrieved information about source file (fd = %d): Before copy",
+  LOG_DEBUG("Retrieved information about source file (fd = %d) before copy",
             src);
 
   if (flock(src, LOCK_SH) != 0) {
@@ -101,9 +101,6 @@ static int atomic_filecopy(int src, int dst) {
               src, dst);
     goto FAIL;
   }
-  LOG_DEBUG(
-      "Copied content from source file (fd = %d) to destination file (fd = %d)",
-      src, dst);
 
   struct stat sb_after;
   if (fstat(src, &sb_after) != 0) {
@@ -111,7 +108,7 @@ static int atomic_filecopy(int src, int dst) {
               src, strerror(errno));
     goto FAIL;
   }
-  LOG_DEBUG("Retrieved information about source file (fd = %d): After copy",
+  LOG_DEBUG("Retrieved information about source file (fd = %d) after copy",
             src);
 
   if ((sb_before.st_mtim.tv_sec != sb_after.st_mtim.tv_sec) ||
@@ -158,8 +155,7 @@ int zopen(const char *fname) {
 
   file->temp = malloc(strlen(file->orig) + strlen(".XXXXXX") + 1);
   if (file->temp == NULL) {
-    LOG_DEBUG("Failed to allocate memory: %s",
-              strerror(errno));
+    LOG_DEBUG("Failed to allocate memory: %s", strerror(errno));
     goto FAIL;
   }
 
@@ -190,7 +186,8 @@ int zopen(const char *fname) {
                 file->orig, fd, file->temp, file->fd, strerror(errno));
       goto FAIL;
     }
-    LOG_DEBUG("Copied content from original file '%s' (fd = %d) to temporary "
+    LOG_DEBUG("Successfully copied content from original file '%s' (fd = %d) "
+              "to temporary "
               "file '%s' (fd = %d)",
               file->orig, fd, file->temp, file->fd);
   }
@@ -269,8 +266,8 @@ static int file_is_mole(const char *orig, const char *mole) {
 static int wack_a_mole(const char *orig_fname) {
   int ret = -1;
   DIR *dirp = NULL;
-  char *buf_1 = NULL; /* Buffer for dirname() */
-  char *buf_2 = NULL; /* Buffer for basename() */
+  char *buf_1 = NULL;    /* Buffer for dirname() */
+  char *buf_2 = NULL;    /* Buffer for basename() */
   char *survivor = NULL; /* Mole that survived */
 
   buf_1 = strdup(orig_fname);
@@ -309,11 +306,12 @@ static int wack_a_mole(const char *orig_fname) {
           LOG_DEBUG("Failed to allocate memory: %s", strerror(errno));
           goto FAIL;
         }
-        LOG_DEBUG("Initial mole '%s' was appointed the new survivor", survivor);
-      }
-      else if (strcmp(challenger, survivor) > 0) {
+        LOG_DEBUG(
+            "Initial challenger (mole '%s') was appointed as the new survivor",
+            survivor);
+      } else if (strcmp(challenger, survivor) > 0) {
         unlink(survivor); /* Don't care if it fails */
-        LOG_DEBUG("Previous survivor mole '%s' got wacked", survivor);
+        LOG_DEBUG("Previous survivor (mole '%s') got wacked", survivor);
         free(survivor);
 
         survivor = strdup(challenger);
@@ -321,11 +319,12 @@ static int wack_a_mole(const char *orig_fname) {
           LOG_DEBUG("Failed to allocate memory: %s", strerror(errno));
           goto FAIL;
         }
-        LOG_DEBUG("Challenger mole '%s' was appointed the new survivor", survivor);
-      }
-      else {
+        LOG_DEBUG(
+            "New challenger (mole '%s') was appointed as the new survivor",
+            survivor);
+      } else {
         unlink(challenger); /* Don't care if it fails */
-        LOG_DEBUG("Challenger mole '%s' git wacked", dire->d_name);
+        LOG_DEBUG("New challenger (mole '%s') got wacked", dire->d_name);
       }
     }
 
@@ -337,7 +336,11 @@ static int wack_a_mole(const char *orig_fname) {
     LOG_DEBUG("Failed to read directory '%s': %s", dname, errno);
     goto FAIL;
   }
-  LOG_DEBUG("Successfully read directory '%s'", dname);
+  LOG_DEBUG("Reached End-of-Directory '%s'", dname);
+
+  rename(survivor, orig_fname); /* We don't care if it fails */
+  LOG_DEBUG("Swapped the last survivor (mole '%s') with the original file '%s'",
+            survivor, orig_fname);
 
   ret = 0;
 FAIL:
@@ -393,10 +396,9 @@ int zclose(int fd) {
             file->mole, file->temp, file->fd);
 
   if (wack_a_mole(file->orig) != 0) {
-    LOG_DEBUG("Failed to wack the moles");
+    LOG_DEBUG("Failed to wack them moles");
     goto FAIL;
   }
-  LOG_DEBUG("Successfully wacked the moles");
 
   ret = 0;
 FAIL:
