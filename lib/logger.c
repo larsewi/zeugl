@@ -1,6 +1,5 @@
 #include <assert.h>
 #include <stdarg.h>
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,10 +23,11 @@ void LoggerLogMessage(const char *file, int line, const char *format, ...) {
   va_list ap;
   va_start(ap, format);
 
+#ifdef NDEBUG
+  __attribute__((unused))
+#endif
   int ret = vsnprintf(msg, sizeof(msg), format, ap);
-  if (ret < 0 || (size_t)ret >= sizeof(msg)) {
-    LOG_DEBUG("Log message truncated: Too long (%d >= %zu)", ret, sizeof(msg));
-  }
+  assert(ret >= 0 && (size_t)ret < sizeof(msg));
 
   va_end(ap);
 

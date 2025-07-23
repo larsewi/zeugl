@@ -1,6 +1,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <libgen.h>
@@ -11,6 +12,7 @@
 #include <string.h>
 #include <sys/file.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include "logger.h"
@@ -36,7 +38,7 @@ static int filecopy(int src, int dst) {
       ssize_t ret = read(src, buffer + n_read, sizeof(buffer) - n_read);
       if (ret < 0) {
         if (errno == EINTR) {
-          /* Interrupted */
+          /* Interrupted! It happens, just continue... */
           continue;
         }
 
@@ -49,7 +51,7 @@ static int filecopy(int src, int dst) {
       eof = (ret == 0);
 
       n_read += (size_t)ret;
-    } while (!eof && (n_read <= sizeof(buffer)));
+    } while (!eof && (n_read < sizeof(buffer)));
     LOG_DEBUG("Read %zu bytes from source file (fd = %d)", n_read, src);
 
     size_t n_written = 0;
@@ -57,7 +59,7 @@ static int filecopy(int src, int dst) {
       ssize_t ret = write(dst, buffer + n_written, n_read - n_written);
       if (ret < 0) {
         if (errno == EINTR) {
-          /* Interrupted */
+          /* Interrupted! It happens, just continue... */
           continue;
         }
 
@@ -143,29 +145,28 @@ int zopen(const char *fname) {
 
   file = calloc(1, sizeof(struct zfile));
   if (file == NULL) {
-    LOG_DEBUG("Failed to allocate memory for zfile: %s", strerror(errno));
+    LOG_DEBUG("Failed to allocate memory: %s", strerror(errno));
     return -1;
   }
   file->fd = -1;
 
   file->orig = strdup(fname);
   if (file->orig == NULL) {
-    LOG_DEBUG("Failed to allocate memory for copy of original filename: %s",
-              strerror(errno));
+    LOG_DEBUG("Failed to allocate memory: %s", strerror(errno));
     goto FAIL;
   }
 
-  file->temp = malloc(strlen(file->orig) + strlen(".XXXXXX.tmp") + 1);
+  file->temp = malloc(strlen(file->orig) + strlen(".XXXXXX") + 1);
   if (file->temp == NULL) {
-    LOG_DEBUG("Failed to allocate memory for temporary filename: %s",
+    LOG_DEBUG("Failed to allocate memory: %s",
               strerror(errno));
     goto FAIL;
   }
 
-  stpcpy(stpcpy(file->temp, file->orig), ".XXXXXX.tmp");
+  stpcpy(stpcpy(file->temp, file->orig), ".XXXXXX");
   LOG_DEBUG("Generated template for temporary filename '%s'", file->temp);
 
-  file->fd = mkstemps(file->temp, strlen(".tmp"));
+  file->fd = mkstemp(file->temp);
   if (file->fd < 0) {
     LOG_DEBUG("Failed to create temporary file: %s", strerror(errno));
     goto FAIL;
@@ -220,11 +221,10 @@ FAIL:
   return -1;
 }
 
-int create_mole(struct zfile *file) {
+static int create_a_mole(struct zfile *file) {
   file->mole = malloc(strlen(file->temp) + strlen(".mole") + 1);
   if (file->mole == NULL) {
-    LOG_DEBUG("Failed to allocate memory for mole filename: %s",
-              strerror(errno));
+    LOG_DEBUG("Failed to allocate memory: %s", strerror(errno));
     return -1;
   }
 
@@ -241,7 +241,116 @@ int create_mole(struct zfile *file) {
   return 0;
 }
 
-int wack_mole(const char *fname) { return 0; }
+static int file_is_mole(const char *orig, const char *mole) {
+  size_t orig_len = strlen(orig);                  /* Original filename */
+  size_t mole_len = strlen(mole);                  /* Potential mole */
+  size_t uid_len = strlen(".XXXXXX");              /* Unique identifier */
+  size_t suf_len = strlen(".mole");                /* Mole suffix */
+  size_t exp_len = (orig_len + uid_len + suf_len); /* Expected length */
+
+  if (mole_len != exp_len) {
+    /* Potential mole filename has wrong length */
+    return 0;
+  }
+
+  if (strncmp(mole, orig, orig_len) != 0) {
+    /* Potential mole filename doesn't start with the original filename */
+    return 0;
+  }
+
+  if (strcmp(mole + orig_len + uid_len, ".mole") != 0) {
+    /* Potential mole filename is missing the mole suffix */
+    return 0;
+  }
+
+  return 1;
+}
+
+static int wack_a_mole(const char *orig_fname) {
+  int ret = -1;
+  DIR *dirp = NULL;
+  char *buf_1 = NULL; /* Buffer for dirname() */
+  char *buf_2 = NULL; /* Buffer for basename() */
+  char *survivor = NULL; /* Mole that survived */
+
+  buf_1 = strdup(orig_fname);
+  if (buf_1 == NULL) {
+    LOG_DEBUG("Failed to allocate memory: %s", strerror(errno));
+    goto FAIL;
+  }
+  const char *dname = dirname(buf_1);
+
+  buf_2 = strdup(orig_fname);
+  if (buf_2 == NULL) {
+    LOG_DEBUG("Failed to allocate memory: %s", strerror(errno));
+    goto FAIL;
+  }
+  const char *bname = basename(buf_2);
+
+  dirp = opendir(dname);
+  if (dirp == NULL) {
+    LOG_DEBUG("Failed to open directory '%s'", dname);
+    goto FAIL;
+  }
+  LOG_DEBUG("Opened directory '%s'", dname);
+
+  errno = 0; /* To distinguish between End-of-Directory and ERROR */
+  struct dirent *dire = readdir(dirp);
+
+  while (dire != NULL) {
+    if (file_is_mole(bname, dire->d_name)) {
+      const char *challenger = dire->d_name;
+
+      LOG_DEBUG("Successfully identified a mole '%s'", challenger);
+
+      if (survivor == NULL) {
+        survivor = strdup(challenger);
+        if (survivor == NULL) {
+          LOG_DEBUG("Failed to allocate memory: %s", strerror(errno));
+          goto FAIL;
+        }
+        LOG_DEBUG("Initial mole '%s' was appointed the new survivor", survivor);
+      }
+      else if (strcmp(challenger, survivor) > 0) {
+        unlink(survivor); /* Don't care if it fails */
+        LOG_DEBUG("Previous survivor mole '%s' got wacked", survivor);
+        free(survivor);
+
+        survivor = strdup(challenger);
+        if (survivor == NULL) {
+          LOG_DEBUG("Failed to allocate memory: %s", strerror(errno));
+          goto FAIL;
+        }
+        LOG_DEBUG("Challenger mole '%s' was appointed the new survivor", survivor);
+      }
+      else {
+        unlink(challenger); /* Don't care if it fails */
+        LOG_DEBUG("Challenger mole '%s' git wacked", dire->d_name);
+      }
+    }
+
+    errno = 0;
+    dire = readdir(dirp);
+  }
+
+  if (errno != 0) {
+    LOG_DEBUG("Failed to read directory '%s': %s", dname, errno);
+    goto FAIL;
+  }
+  LOG_DEBUG("Successfully read directory '%s'", dname);
+
+  ret = 0;
+FAIL:
+
+  free(buf_1);
+  free(buf_2);
+  free(survivor);
+  if (dirp != NULL) {
+    closedir(dirp);
+  }
+
+  return ret;
+}
 
 int zclose(int fd) {
   /* Consider -1 a no-op */
@@ -274,12 +383,23 @@ int zclose(int fd) {
             "This file was opened with zopen()",
             file->temp, file->fd);
 
-  int ret = create_mole(file);
-  if (ret != 0) {
+  int ret = -1;
+
+  if (create_a_mole(file) != 0) {
     LOG_DEBUG("Failed to create mole from temporary file '%s'", file->temp);
+    goto FAIL;
   }
   LOG_DEBUG("Created a mole '%s' from temporary file '%s' (fd = %d)",
             file->mole, file->temp, file->fd);
+
+  if (wack_a_mole(file->orig) != 0) {
+    LOG_DEBUG("Failed to wack the moles");
+    goto FAIL;
+  }
+  LOG_DEBUG("Successfully wacked the moles");
+
+  ret = 0;
+FAIL:
 
   free(file->orig);
   free(file->temp);

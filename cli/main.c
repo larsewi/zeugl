@@ -57,8 +57,9 @@ int main(int argc, char *argv[]) {
   LOG_DEBUG("Began transaction for file '%s' (fd = %d)", output_file, fd);
 
   if (zclose(fd) != 0) {
-      LOG_DEBUG("Failed to commit transaction for file '%s' (fd = %d)", output_file, fd);
-      return EXIT_FAILURE;
+    LOG_DEBUG("Failed to commit transaction for file '%s' (fd = %d)",
+              output_file, fd);
+    return EXIT_FAILURE;
   }
   LOG_DEBUG("Committed transaction for file '%s' (fd = %d)", output_file, fd);
 
