@@ -263,21 +263,23 @@ static int file_is_mole(const char *orig, const char *mole) {
   return 1;
 }
 
-static int wack_a_mole(const char *orig_fname) {
+static int wack_a_mole(const char *fname) {
   int ret = -1;
   DIR *dirp = NULL;
   char *buf_1 = NULL;    /* Buffer for dirname() */
   char *buf_2 = NULL;    /* Buffer for basename() */
-  char *survivor = NULL; /* Mole that survived */
+  char *survivor = NULL; /* Last survivor mole */
 
-  buf_1 = strdup(orig_fname);
+  /* Get directory name */
+  buf_1 = strdup(fname);
   if (buf_1 == NULL) {
     LOG_DEBUG("Failed to allocate memory: %s", strerror(errno));
     goto FAIL;
   }
   const char *dname = dirname(buf_1);
 
-  buf_2 = strdup(orig_fname);
+  /* Get filename */
+  buf_2 = strdup(fname);
   if (buf_2 == NULL) {
     LOG_DEBUG("Failed to allocate memory: %s", strerror(errno));
     goto FAIL;
@@ -300,7 +302,7 @@ static int wack_a_mole(const char *orig_fname) {
 
       LOG_DEBUG("Successfully identified a mole '%s'", challenger);
 
-      if (survivor == NULL) {
+      if /* Initial survivor */ (survivor == NULL) {
         survivor = strdup(challenger);
         if (survivor == NULL) {
           LOG_DEBUG("Failed to allocate memory: %s", strerror(errno));
@@ -309,7 +311,7 @@ static int wack_a_mole(const char *orig_fname) {
         LOG_DEBUG(
             "Initial challenger (mole '%s') was appointed as the new survivor",
             survivor);
-      } else if (strcmp(challenger, survivor) > 0) {
+      } else if /* New survivor */ (strcmp(challenger, survivor) > 0) {
         unlink(survivor); /* Don't care if it fails */
         LOG_DEBUG("Previous survivor (mole '%s') got wacked", survivor);
         free(survivor);
@@ -322,7 +324,7 @@ static int wack_a_mole(const char *orig_fname) {
         LOG_DEBUG(
             "New challenger (mole '%s') was appointed as the new survivor",
             survivor);
-      } else {
+      } else /* Keep old survivor */ {
         unlink(challenger); /* Don't care if it fails */
         LOG_DEBUG("New challenger (mole '%s') got wacked", dire->d_name);
       }
@@ -338,9 +340,9 @@ static int wack_a_mole(const char *orig_fname) {
   }
   LOG_DEBUG("Reached End-of-Directory '%s'", dname);
 
-  rename(survivor, orig_fname); /* We don't care if it fails */
+  rename(survivor, fname); /* We don't care if it fails */
   LOG_DEBUG("Swapped the last survivor (mole '%s') with the original file '%s'",
-            survivor, orig_fname);
+            survivor, fname);
 
   ret = 0;
 FAIL:
@@ -396,7 +398,7 @@ int zclose(int fd) {
             file->mole, file->temp, file->fd);
 
   if (wack_a_mole(file->orig) != 0) {
-    LOG_DEBUG("Failed to wack them moles");
+    LOG_DEBUG("Failed to wack the moles");
     goto FAIL;
   }
 
