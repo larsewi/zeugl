@@ -26,7 +26,7 @@ struct zfile {
   struct zfile *next;
 };
 
-static struct zfile *open_files = NULL;
+static struct zfile *OPEN_FILES = NULL;
 
 static int filecopy(int src, int dst) {
   char buffer[4096];
@@ -195,8 +195,8 @@ int zopen(const char *fname) {
   close(fd);
   LOG_DEBUG("Closed original file '%s' (fd = %d)", file->orig, fd);
 
-  file->next = open_files;
-  open_files = file;
+  file->next = OPEN_FILES;
+  OPEN_FILES = file;
 
   return file->fd;
 
@@ -371,7 +371,7 @@ int zclose(int fd) {
   LOG_DEBUG("Closed file (fd = %d)", fd);
 
   LOG_DEBUG("Looking for file with matching file descriptor %d...", fd);
-  struct zfile *prev = NULL, *file = open_files;
+  struct zfile *prev = NULL, *file = OPEN_FILES;
   while ((file != NULL) && (file->fd != fd)) {
     if (file != NULL) {
       /* We need this to merge left and right of list after removal */
@@ -411,7 +411,7 @@ FAIL:
 
   if (prev == NULL) {
     /* The file was the first element in the list */
-    open_files = file->next;
+    OPEN_FILES = file->next;
   } else {
     /* The file was not the first element in the list. We need to merge left
      * and right before removal. */
