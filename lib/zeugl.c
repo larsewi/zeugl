@@ -371,8 +371,12 @@ int zclose(int fd) {
   LOG_DEBUG("Closed file (fd = %d)", fd);
 
   LOG_DEBUG("Looking for file with matching file descriptor %d...", fd);
-  struct zfile *file = open_files;
+  struct zfile *prev = NULL, *file = open_files;
   while ((file != NULL) && (file->fd != fd)) {
+    if (file != NULL) {
+      /* We need this to merge left and right of list after removal */
+      prev = file;
+    }
     file = file->next;
   }
 
@@ -404,6 +408,15 @@ int zclose(int fd) {
 
   ret = 0;
 FAIL:
+
+  if (prev == NULL) {
+    /* The file was the first element in the list */
+    open_files = file->next;
+  } else {
+    /* The file was not the first element in the list. We need to merge left
+     * and right before removal. */
+    prev->next = file->next;
+  }
 
   free(file->orig);
   free(file->temp);
