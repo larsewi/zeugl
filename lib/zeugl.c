@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <libgen.h>
 #include <linux/limits.h>
+#include <pthread.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,6 +27,7 @@ struct zfile {
   struct zfile *next;
 };
 
+static pthread_mutex_t MUTEX = PTHREAD_MUTEX_INITIALIZER;
 static struct zfile *OPEN_FILES = NULL;
 
 static int filecopy(int src, int dst) {
@@ -195,8 +197,22 @@ int zopen(const char *fname) {
   close(fd);
   LOG_DEBUG("Closed original file '%s' (fd = %d)", file->orig, fd);
 
+  int ret = pthread_mutex_lock(&MUTEX);
+  if (ret != 0) {
+    LOG_DEBUG("Failed to acquire mutex: %s", strerror(ret));
+    goto FAIL;
+  }
+  LOG_DEBUG("Successfully acquired mutex");
+
   file->next = OPEN_FILES;
   OPEN_FILES = file;
+
+  ret = pthread_mutex_unlock(&MUTEX);
+  if (ret != 0) {
+    LOG_DEBUG("Failed to release mutex: %s", strerror(ret));
+    goto FAIL;
+  }
+  LOG_DEBUG("Successfully released mutex");
 
   return file->fd;
 
@@ -370,6 +386,15 @@ int zclose(int fd) {
   }
   LOG_DEBUG("Closed file (fd = %d)", fd);
 
+  int err = pthread_mutex_lock(&MUTEX);
+  if (err != 0) {
+    LOG_DEBUG("Failed to acquire mutex: %s", strerror(err));
+    return -1;
+  }
+  LOG_DEBUG("Successfully acquired mutex");
+
+  int ret = -1;
+
   LOG_DEBUG("Looking for file with matching file descriptor %d...", fd);
   struct zfile *prev = NULL, *file = OPEN_FILES;
   while ((file != NULL) && (file->fd != fd)) {
@@ -386,13 +411,11 @@ int zclose(int fd) {
               fd);
     /* This file was not opened with zopen(). Hence, no need to perform the
      * wack-a-mole. */
-    return 0;
+    goto FAIL;
   }
   LOG_DEBUG("Found file '%s' with matching file descriptor (fd = %d): "
             "This file was opened with zopen()",
             file->temp, file->fd);
-
-  int ret = -1;
 
   if (create_a_mole(file) != 0) {
     LOG_DEBUG("Failed to create mole from temporary file '%s'", file->temp);
@@ -418,10 +441,18 @@ FAIL:
     prev->next = file->next;
   }
 
-  free(file->orig);
-  free(file->temp);
-  free(file->mole);
-  free(file);
+  err = pthread_mutex_unlock(&MUTEX);
+  if (err != 0) {
+    LOG_DEBUG("Failed to release mutex: %s", strerror(err));
+    ret = -1;
+  }
+
+  if (file != NULL) {
+    free(file->orig);
+    free(file->temp);
+    free(file->mole);
+    free(file);
+  }
 
   return ret;
 }

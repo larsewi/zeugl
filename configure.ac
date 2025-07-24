@@ -9,6 +9,9 @@ AC_CONFIG_MACRO_DIR([m4])
 
 AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 
+# Load macros
+m4_include([m4/ax_pthread.m4])
+
 # Checks for programs.
 AC_PROG_CXX
 AC_PROG_AWK
@@ -37,6 +40,14 @@ AC_FUNC_MALLOC
 AC_CHECK_FUNCS([strerror
                 stpcpy
                 strdup])
+
+AX_PTHREAD([
+  AC_MSG_NOTICE([POSIX threads found and enabled.])
+  LIBS="$LIBS $PTHREAD_LIBS"
+  CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
+],[
+  AC_MSG_NOTICE([POSIX threads not found.])
+])
 
 AC_CONFIG_TESTDIR([tests])
 AC_CONFIG_FILES([Makefile
