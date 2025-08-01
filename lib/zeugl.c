@@ -216,11 +216,11 @@ static int wack_a_mole(const char *fname) {
           goto FAIL;
         }
         LOG_DEBUG(
-            "Initial challenger (mole '%s') was appointed as the new survivor",
+            "Initial challenger '%s' was appointed as the new survivor",
             survivor);
       } else if /* New survivor */ (strcmp(challenger, survivor) > 0) {
         unlink(survivor); /* Don't care if it fails */
-        LOG_DEBUG("Previous survivor (mole '%s') got wacked", survivor);
+        LOG_DEBUG("Previous survivor '%s' got wacked", survivor);
         free(survivor);
 
         survivor = strdup(challenger);
@@ -229,11 +229,11 @@ static int wack_a_mole(const char *fname) {
           goto FAIL;
         }
         LOG_DEBUG(
-            "New challenger (mole '%s') was appointed as the new survivor",
+            "New challenger '%s' was appointed as the new survivor",
             survivor);
       } else /* Keep old survivor */ {
         unlink(challenger); /* Don't care if it fails */
-        LOG_DEBUG("New challenger (mole '%s') got wacked", dire->d_name);
+        LOG_DEBUG("New challenger '%s' got wacked", dire->d_name);
       }
     }
 
