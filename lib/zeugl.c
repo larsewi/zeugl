@@ -31,7 +31,7 @@ struct zfile {
 static pthread_mutex_t OPEN_FILES_MUTEX = PTHREAD_MUTEX_INITIALIZER;
 static struct zfile *OPEN_FILES = NULL;
 
-int zopen(const char *fname) {
+int zopen(const char *fname, int flags, ...) {
   assert(fname != NULL);
 
   struct zfile *file = NULL;
@@ -94,20 +94,24 @@ int zopen(const char *fname) {
 
   int ret = pthread_mutex_lock(&OPEN_FILES_MUTEX);
   if (ret != 0) {
-    LOG_DEBUG("Failed to acquire mutex: %s", strerror(ret));
+    LOG_DEBUG("Failed to acquire mutex protecting list of open files: %s",
+              strerror(ret));
     goto FAIL;
   }
-  LOG_DEBUG("Successfully acquired mutex");
+  LOG_DEBUG("Successfully acquired mutex protecting list of open files");
 
   file->next = OPEN_FILES;
   OPEN_FILES = file;
+  LOG_DEBUG("Added file '%s' (fd = %d) to list of open files", file->temp,
+            file->fd);
 
   ret = pthread_mutex_unlock(&OPEN_FILES_MUTEX);
   if (ret != 0) {
-    LOG_DEBUG("Failed to release mutex: %s", strerror(ret));
+    LOG_DEBUG("Failed to release mutex protecting list of open files: %s",
+              strerror(ret));
     goto FAIL;
   }
-  LOG_DEBUG("Successfully released mutex");
+  LOG_DEBUG("Successfully released mutex protecting list of open files");
 
   return file->fd;
 
@@ -215,9 +219,8 @@ static int wack_a_mole(const char *fname) {
           LOG_DEBUG("Failed to allocate memory: %s", strerror(errno));
           goto FAIL;
         }
-        LOG_DEBUG(
-            "Initial challenger '%s' was appointed as the new survivor",
-            survivor);
+        LOG_DEBUG("Initial challenger '%s' was appointed as the new survivor",
+                  survivor);
       } else if /* New survivor */ (strcmp(challenger, survivor) > 0) {
         unlink(survivor); /* Don't care if it fails */
         LOG_DEBUG("Previous survivor '%s' got wacked", survivor);
@@ -228,9 +231,8 @@ static int wack_a_mole(const char *fname) {
           LOG_DEBUG("Failed to allocate memory: %s", strerror(errno));
           goto FAIL;
         }
-        LOG_DEBUG(
-            "New challenger '%s' was appointed as the new survivor",
-            survivor);
+        LOG_DEBUG("New challenger '%s' was appointed as the new survivor",
+                  survivor);
       } else /* Keep old survivor */ {
         unlink(challenger); /* Don't care if it fails */
         LOG_DEBUG("New challenger '%s' got wacked", dire->d_name);
@@ -287,10 +289,11 @@ int zclose(int fd, bool commit) {
 
   int err = pthread_mutex_lock(&OPEN_FILES_MUTEX);
   if (err != 0) {
-    LOG_DEBUG("Failed to acquire mutex: %s", strerror(err));
+    LOG_DEBUG("Failed to acquire mutex protecting list of open files: %s",
+              strerror(err));
     return -1;
   }
-  LOG_DEBUG("Successfully acquired mutex");
+  LOG_DEBUG("Successfully acquired mutex protecting list of open files");
 
   int ret = -1;
 
@@ -353,9 +356,11 @@ FAIL:
 
   err = pthread_mutex_unlock(&OPEN_FILES_MUTEX);
   if (err != 0) {
-    LOG_DEBUG("Failed to release mutex: %s", strerror(err));
+    LOG_DEBUG("Failed to release mutex protecting list of open files: %s",
+              strerror(err));
     ret = -1;
   }
+  LOG_DEBUG("Successfully released mutex protecting list of open files");
 
   if (file != NULL) {
     free(file->orig);

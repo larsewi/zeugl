@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 
-int zopen(const char *filename);
+int zopen(const char *filename, int flags, ...);
 
 int zclose(int fd, bool commit);
 

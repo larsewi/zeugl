@@ -47,7 +47,7 @@ int main(int argc, char *argv[]) {
   }
   const char *output_fname = argv[optind++];
 
-  int output_fd = zopen(output_fname);
+  int output_fd = zopen(output_fname, 0);
   if (output_fd < 0) {
     LOG_DEBUG("Failed to begin transaction for output file '%s': %s",
               output_fname, strerror(errno));

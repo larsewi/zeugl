@@ -1,6 +1,7 @@
 #include "config.h"
 
 #include <errno.h>
+#include <stdint.h>
 #include <string.h>
 #include <sys/file.h>
 #include <sys/stat.h>
@@ -66,8 +67,10 @@ int atomic_filecopy(int src, int dst) {
               src, strerror(errno));
     return -1;
   }
-  LOG_DEBUG("Retrieved information about source file (fd = %d) before copy",
-            src);
+  LOG_DEBUG("Retrieved information about source file (fd = %d) before copy "
+            "(mtime = %jd s, %jd ns)",
+            src, (uintmax_t)sb_before.st_mtim.tv_sec,
+            (uintmax_t)sb_before.st_mtim.tv_nsec);
 
   if (flock(src, LOCK_SH) != 0) {
     LOG_DEBUG("Failed to get shared lock for source file (fd = %d): %s", src,
@@ -89,8 +92,10 @@ int atomic_filecopy(int src, int dst) {
               src, strerror(errno));
     goto FAIL;
   }
-  LOG_DEBUG("Retrieved information about source file (fd = %d) after copy",
-            src);
+  LOG_DEBUG("Retrieved information about source file (fd = %d) after copy "
+            "(mtime = %jd s, %jd ns)",
+            src, (uintmax_t)sb_before.st_mtim.tv_sec,
+            (uintmax_t)sb_before.st_mtim.tv_nsec);
 
   if ((sb_before.st_mtim.tv_sec != sb_after.st_mtim.tv_sec) ||
       (sb_before.st_mtim.tv_nsec != sb_after.st_mtim.tv_nsec)) {
