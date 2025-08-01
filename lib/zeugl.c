@@ -28,7 +28,7 @@ struct zfile {
   struct zfile *next;
 };
 
-static pthread_mutex_t MUTEX = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t OPEN_FILES_MUTEX = PTHREAD_MUTEX_INITIALIZER;
 static struct zfile *OPEN_FILES = NULL;
 
 int zopen(const char *fname) {
@@ -92,7 +92,7 @@ int zopen(const char *fname) {
     LOG_DEBUG("Closed original file '%s' (fd = %d)", file->orig, fd);
   }
 
-  int ret = pthread_mutex_lock(&MUTEX);
+  int ret = pthread_mutex_lock(&OPEN_FILES_MUTEX);
   if (ret != 0) {
     LOG_DEBUG("Failed to acquire mutex: %s", strerror(ret));
     goto FAIL;
@@ -102,7 +102,7 @@ int zopen(const char *fname) {
   file->next = OPEN_FILES;
   OPEN_FILES = file;
 
-  ret = pthread_mutex_unlock(&MUTEX);
+  ret = pthread_mutex_unlock(&OPEN_FILES_MUTEX);
   if (ret != 0) {
     LOG_DEBUG("Failed to release mutex: %s", strerror(ret));
     goto FAIL;
@@ -285,7 +285,7 @@ int zclose(int fd, bool commit) {
   }
   LOG_DEBUG("Closed file (fd = %d)", fd);
 
-  int err = pthread_mutex_lock(&MUTEX);
+  int err = pthread_mutex_lock(&OPEN_FILES_MUTEX);
   if (err != 0) {
     LOG_DEBUG("Failed to acquire mutex: %s", strerror(err));
     return -1;
@@ -351,7 +351,7 @@ FAIL:
     prev->next = file->next;
   }
 
-  err = pthread_mutex_unlock(&MUTEX);
+  err = pthread_mutex_unlock(&OPEN_FILES_MUTEX);
   if (err != 0) {
     LOG_DEBUG("Failed to release mutex: %s", strerror(err));
     ret = -1;
