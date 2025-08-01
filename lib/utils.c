@@ -63,14 +63,14 @@ int atomic_filecopy(int src, int dst) {
 
   struct stat sb_before;
   if (fstat(src, &sb_before) != 0) {
-    LOG_DEBUG("Failed to retrieve information about source file (fd = %d): %s",
-              src, strerror(errno));
+    LOG_DEBUG("Failed to retrieve mtime from source file (fd = %d): %s", src,
+              strerror(errno));
     return -1;
   }
-  LOG_DEBUG("Retrieved information about source file (fd = %d) before copy "
-            "(mtime = %jd s, %jd ns)",
-            src, (uintmax_t)sb_before.st_mtim.tv_sec,
-            (uintmax_t)sb_before.st_mtim.tv_nsec);
+  LOG_DEBUG(
+      "Retrieved mtime (%jd s, %jd ns) from source file (fd = %d) before copy",
+      (uintmax_t)sb_before.st_mtim.tv_sec, (uintmax_t)sb_before.st_mtim.tv_nsec,
+      src);
 
   if (flock(src, LOCK_SH) != 0) {
     LOG_DEBUG("Failed to get shared lock for source file (fd = %d): %s", src,
@@ -88,14 +88,14 @@ int atomic_filecopy(int src, int dst) {
 
   struct stat sb_after;
   if (fstat(src, &sb_after) != 0) {
-    LOG_DEBUG("Failed to retrieve information about source file (fd = %d): %s",
-              src, strerror(errno));
+    LOG_DEBUG("Failed to retrieve mtime from source file (fd = %d): %s", src,
+              strerror(errno));
     goto FAIL;
   }
-  LOG_DEBUG("Retrieved information about source file (fd = %d) after copy "
-            "(mtime = %jd s, %jd ns)",
-            src, (uintmax_t)sb_before.st_mtim.tv_sec,
-            (uintmax_t)sb_before.st_mtim.tv_nsec);
+  LOG_DEBUG(
+      "Retrieved mtime (%jd s, %jd ns) from source file (fd = %d) after copy",
+      (uintmax_t)sb_before.st_mtim.tv_sec, (uintmax_t)sb_before.st_mtim.tv_nsec,
+      src);
 
   if ((sb_before.st_mtim.tv_sec != sb_after.st_mtim.tv_sec) ||
       (sb_before.st_mtim.tv_nsec != sb_after.st_mtim.tv_nsec)) {

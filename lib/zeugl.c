@@ -1,5 +1,6 @@
 #include "config.h"
 
+#include <asm-generic/errno-base.h>
 #include <assert.h>
 #include <dirent.h>
 #include <errno.h>
@@ -7,7 +8,9 @@
 #include <libgen.h>
 #include <linux/limits.h>
 #include <pthread.h>
+#include <stdarg.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,6 +28,7 @@ struct zfile {
   char *temp;
   char *mole;
   int fd;
+  mode_t mode;
   struct zfile *next;
 };
 
@@ -65,31 +69,63 @@ int zopen(const char *fname, int flags, ...) {
   }
   LOG_DEBUG("Created temporary file '%s' (fd = %d)", file->temp, file->fd);
 
-  int fd = open(file->orig, O_RDONLY);
-  if (fd < 0) {
-    if (errno != ENOENT) {
-      LOG_DEBUG("Failed to open original file '%s' in read-only mode: %s",
-                file->orig, strerror(errno));
-      goto FAIL;
-    }
-  } else {
-    LOG_DEBUG("Opened original file '%s' (fd = %d) in read-only mode",
-              file->orig, fd);
+  if (!(flags & Z_TRUNCATE)) {
+    int fd = open(file->orig, O_RDONLY);
+    if (fd < 0) {
+      if ((flags & Z_CREATE) && (errno == ENOENT)) {
+        /* If Z_CREATE was specified, then ENOENT can be expected */
+        LOG_DEBUG("Original file '%s' does not exist", file->orig);
 
-    if (atomic_filecopy(fd, file->fd) != 0) {
-      LOG_DEBUG("Failed to copy content from original file '%s' (fd = %d) to "
-                "temporary file '%s' (fd = %d): %s",
-                file->orig, fd, file->temp, file->fd, strerror(errno));
-      close(fd);
-      goto FAIL;
-    }
-    LOG_DEBUG("Successfully copied content from original file '%s' (fd = %d) "
-              "to temporary "
-              "file '%s' (fd = %d)",
-              file->orig, fd, file->temp, file->fd);
+        /* Use mode specified in zopen() */
+        va_list ap;
+        va_start(ap, flags);
+        file->mode = va_arg(ap, mode_t) & 0777; /* Don't keep user bit */
+        va_end(ap);
+        LOG_DEBUG("Using specified file mode %04jo", (uintmax_t)file->mode);
+      } else {
+        LOG_DEBUG("Failed to open original file '%s' in read-only mode: %s",
+                  file->orig, strerror(errno));
+        goto FAIL;
+      }
+    } else {
+      LOG_DEBUG("Opened original file '%s' (fd = %d) in read-only mode",
+                file->orig, fd);
 
-    close(fd);
-    LOG_DEBUG("Closed original file '%s' (fd = %d)", file->orig, fd);
+      struct stat sb;
+      if (fstat(fd, &sb) != 0) {
+        LOG_DEBUG(
+            "Failed to get file mode from original file '%s' (fd = %d): %s",
+            file->orig, fd, strerror(errno));
+        goto FAIL;
+      }
+      file->mode = sb.st_mode & 0777; /* Don't keep user bit */
+      LOG_DEBUG("Retrieved file mode %04jo from original file '%s' (fd = %d)",
+                (uintmax_t)file->mode, file->orig, fd);
+      LOG_DEBUG("Using original file mode %04jo", (uintmax_t)file->mode);
+
+      if (atomic_filecopy(fd, file->fd) != 0) {
+        LOG_DEBUG("Failed to copy content from original file '%s' (fd = %d) to "
+                  "temporary file '%s' (fd = %d): %s",
+                  file->orig, fd, file->temp, file->fd, strerror(errno));
+        if (close(fd) == 0) {
+          LOG_DEBUG("Closed original file '%s' (fd = %d)", file->orig, fd);
+        } else {
+          LOG_DEBUG("Failed to close original file '%s' (fd = %d): %s",
+                    file->orig, fd, strerror(errno));
+        }
+        goto FAIL;
+      }
+      LOG_DEBUG("Successfully copied content from original file '%s' (fd = %d) "
+                "to temporary file '%s' (fd = %d)",
+                file->orig, fd, file->temp, file->fd);
+
+      if (close(fd) == 0) {
+        LOG_DEBUG("Closed original file '%s' (fd = %d)", file->orig, fd);
+      } else {
+        LOG_DEBUG("Failed to close original file '%s' (fd = %d): %s",
+                  file->orig, fd, strerror(errno));
+      }
+    }
   }
 
   int ret = pthread_mutex_lock(&OPEN_FILES_MUTEX);
@@ -99,6 +135,18 @@ int zopen(const char *fname, int flags, ...) {
     goto FAIL;
   }
   LOG_DEBUG("Successfully acquired mutex protecting list of open files");
+
+  if (!(flags & Z_APPEND)) {
+    if (lseek(file->fd, 0, SEEK_SET) != 0) {
+      LOG_DEBUG("Failed to reposition the file offset for file '%s' (fd = %d) "
+                "to the beginning of the file: %s",
+                file->temp, file->fd, strerror(errno));
+      goto FAIL;
+    }
+    LOG_DEBUG("Repositioned the file offset for file '%s' (fd = %d) to the "
+              "beginning of the file",
+              file->temp, file->fd);
+  }
 
   file->next = OPEN_FILES;
   OPEN_FILES = file;
@@ -116,14 +164,31 @@ int zopen(const char *fname, int flags, ...) {
   return file->fd;
 
 FAIL:
-  LOG_DEBUG("Entered failure clean-up");
   if (file != NULL) {
+    int save_errno = errno;
+
     free(file->orig);
-    free(file->temp);
     if (file->fd >= 0) {
-      close(file->fd);
+      if (close(file->fd) == 0) {
+        LOG_DEBUG("Closed temporary file '%s' (fd = %d)", file->temp, file->fd);
+      } else {
+        LOG_DEBUG("Failed to close temporary file '%s' (fd = %d): %s",
+                  file->temp, file->fd, strerror(errno));
+      }
+    }
+    if (file->temp != NULL) {
+      if (unlink(file->temp) == 0) {
+        LOG_DEBUG("Deleted temporary file '%s'", file->temp);
+      } else {
+        LOG_DEBUG("Failed to delete temporary file '%s': %s", file->temp,
+                  strerror(errno));
+      }
+      free(file->temp);
     }
     free(file);
+
+    /* Restore errno */
+    errno = save_errno;
   }
 
   return -1;
@@ -320,12 +385,19 @@ int zclose(int fd, bool commit) {
             file->temp, file->fd);
 
   if (commit) {
+    if (chmod(file->temp, file->mode) != 0) {
+      LOG_DEBUG("Failed to change file mode for file '%s' to %04jo: %s",
+                file->temp, (uintmax_t)file->mode, strerror(errno));
+    }
+    LOG_DEBUG("Changed file mode for file '%s' to %04jo", file->temp,
+              (uintmax_t)file->mode);
+
     if (create_a_mole(file) != 0) {
       LOG_DEBUG("Failed to create mole from temporary file '%s'", file->temp);
       goto FAIL;
     }
-    LOG_DEBUG("Created a mole '%s' from temporary file '%s' (fd = %d)",
-              file->mole, file->temp, file->fd);
+    LOG_DEBUG("Created a mole '%s' from temporary file '%s'", file->mole,
+              file->temp);
 
     if (wack_a_mole(file->orig) != 0) {
       LOG_DEBUG("Failed to wack the moles");

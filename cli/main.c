@@ -13,17 +13,42 @@
 #include "zeugl.h"
 
 #define PRINT_USAGE(prog)                                                      \
-  fprintf(stderr, "Usage: %s [-f INPUT_FILE] [-d] [-v] [-h] OUTPUT_FILE\n",    \
+  fprintf(stderr,                                                              \
+          "Usage: %s [-f INPUT_FILE] [-c MODE] [-a] [-t] [-d] [-v] [-h] "      \
+          "OUTPUT_FILE\n",                                                     \
           prog);
 
 int main(int argc, char *argv[]) {
   const char *input_fname = "-";
+  int flags = 0;
+  mode_t mode = 0;
 
   int opt;
-  while ((opt = getopt(argc, argv, "f:dvh")) != -1) {
+  while ((opt = getopt(argc, argv, "f:c:atdvh")) != -1) {
     switch (opt) {
     case 'f':
       input_fname = optarg;
+      break;
+    case 'c': {
+      flags |= Z_CREATE;
+      char *endptr = NULL;
+      errno = 0;
+      unsigned long ret = strtoul(optarg, &endptr, 8);
+      if (errno != 0) {
+        LOG_DEBUG("Failed to parse mode string '%s': %s", endptr, strerror(errno));
+        return EXIT_FAILURE;
+      }
+      if ((*optarg == '\0') || (*endptr != '\0') || (ret > 0777)) {
+          LOG_DEBUG("Failed to parse mode string '%s': Bad argument", endptr);
+          return EXIT_FAILURE;
+      }
+      mode = (mode_t)ret;
+    } break;
+    case 'a':
+      flags |= Z_APPEND;
+      break;
+    case 't':
+      flags |= Z_TRUNCATE;
       break;
     case 'd':
       LoggerEnable();
@@ -47,7 +72,7 @@ int main(int argc, char *argv[]) {
   }
   const char *output_fname = argv[optind++];
 
-  int output_fd = zopen(output_fname, 0);
+  int output_fd = zopen(output_fname, flags, mode);
   if (output_fd < 0) {
     LOG_DEBUG("Failed to begin transaction for output file '%s': %s",
               output_fname, strerror(errno));
