@@ -118,3 +118,4 @@ testsuite.log
 zeugl
 build/*
 .vscode/*
+tests/testsuite.dir/*
