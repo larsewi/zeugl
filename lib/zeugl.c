@@ -35,7 +35,6 @@ int zopen(const char *fname) {
   assert(fname != NULL);
 
   struct zfile *file = NULL;
-  int fd = -1;
 
   file = calloc(1, sizeof(struct zfile));
   if (file == NULL) {
@@ -66,7 +65,7 @@ int zopen(const char *fname) {
   }
   LOG_DEBUG("Created temporary file '%s' (fd = %d)", file->temp, file->fd);
 
-  fd = open(file->orig, O_RDONLY);
+  int fd = open(file->orig, O_RDONLY);
   if (fd < 0) {
     if (errno != ENOENT) {
       LOG_DEBUG("Failed to open original file '%s' in read-only mode: %s",
@@ -81,16 +80,17 @@ int zopen(const char *fname) {
       LOG_DEBUG("Failed to copy content from original file '%s' (fd = %d) to "
                 "temporary file '%s' (fd = %d): %s",
                 file->orig, fd, file->temp, file->fd, strerror(errno));
+      close(fd);
       goto FAIL;
     }
     LOG_DEBUG("Successfully copied content from original file '%s' (fd = %d) "
               "to temporary "
               "file '%s' (fd = %d)",
               file->orig, fd, file->temp, file->fd);
-  }
 
-  close(fd);
-  LOG_DEBUG("Closed original file '%s' (fd = %d)", file->orig, fd);
+    close(fd);
+    LOG_DEBUG("Closed original file '%s' (fd = %d)", file->orig, fd);
+  }
 
   int ret = pthread_mutex_lock(&MUTEX);
   if (ret != 0) {
@@ -122,10 +122,6 @@ FAIL:
     free(file);
   }
 
-  if (fd >= 0) {
-    close(fd);
-  }
-
   return -1;
 }
 
@@ -149,7 +145,7 @@ static int create_a_mole(struct zfile *file) {
   return 0;
 }
 
-static int file_is_mole(const char *orig, const char *mole) {
+static bool file_is_mole(const char *orig, const char *mole) {
   size_t orig_len = strlen(orig);                  /* Original filename */
   size_t mole_len = strlen(mole);                  /* Potential mole */
   size_t uid_len = strlen(".XXXXXX");              /* Unique identifier */
@@ -158,20 +154,20 @@ static int file_is_mole(const char *orig, const char *mole) {
 
   if (mole_len != exp_len) {
     /* Potential mole filename has wrong length */
-    return 0;
+    return false;
   }
 
   if (strncmp(mole, orig, orig_len) != 0) {
     /* Potential mole filename doesn't start with the original filename */
-    return 0;
+    return false;
   }
 
   if (strcmp(mole + orig_len + uid_len, ".mole") != 0) {
     /* Potential mole filename is missing the mole suffix */
-    return 0;
+    return false;
   }
 
-  return 1;
+  return true;
 }
 
 static int wack_a_mole(const char *fname) {
@@ -276,7 +272,7 @@ FAIL:
   return ret;
 }
 
-int zclose(int fd) {
+int zclose(int fd, bool commit) {
   /* Consider -1 a no-op */
   if (fd == -1) {
     return 0;
@@ -320,16 +316,27 @@ int zclose(int fd) {
             "This file was opened with zopen()",
             file->temp, file->fd);
 
-  if (create_a_mole(file) != 0) {
-    LOG_DEBUG("Failed to create mole from temporary file '%s'", file->temp);
-    goto FAIL;
-  }
-  LOG_DEBUG("Created a mole '%s' from temporary file '%s' (fd = %d)",
-            file->mole, file->temp, file->fd);
+  if (commit) {
+    if (create_a_mole(file) != 0) {
+      LOG_DEBUG("Failed to create mole from temporary file '%s'", file->temp);
+      goto FAIL;
+    }
+    LOG_DEBUG("Created a mole '%s' from temporary file '%s' (fd = %d)",
+              file->mole, file->temp, file->fd);
 
-  if (wack_a_mole(file->orig) != 0) {
-    LOG_DEBUG("Failed to wack the moles");
-    goto FAIL;
+    if (wack_a_mole(file->orig) != 0) {
+      LOG_DEBUG("Failed to wack the moles");
+      goto FAIL;
+    }
+  } else {
+    LOG_DEBUG("Aborting file transaction");
+    if (unlink(file->temp) == 0) {
+      LOG_DEBUG("Deleted temporary file '%s'", file->temp);
+    } else {
+      LOG_DEBUG("Failed to delete temporary file '%s': %s", file->temp,
+                strerror(errno));
+      goto FAIL;
+    }
   }
 
   ret = 0;

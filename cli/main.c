@@ -2,12 +2,14 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "logger.h"
+#include "utils.h"
 #include "zeugl.h"
 
 #define PRINT_USAGE(prog)                                                      \
@@ -15,13 +17,13 @@
           prog);
 
 int main(int argc, char *argv[]) {
-  const char *input_file = "-";
+  const char *input_fname = "-";
 
   int opt;
   while ((opt = getopt(argc, argv, "f:dvh")) != -1) {
     switch (opt) {
     case 'f':
-      input_file = optarg;
+      input_fname = optarg;
       break;
     case 'd':
       LoggerEnable();
@@ -43,25 +45,64 @@ int main(int argc, char *argv[]) {
     PRINT_USAGE(argv[0]);
     return EXIT_FAILURE;
   }
-  const char *output_file = argv[optind++];
+  const char *output_fname = argv[optind++];
 
-  LOG_DEBUG("Input file '%s'", input_file);
-  LOG_DEBUG("Output file '%s'", output_file);
+  int output_fd = zopen(output_fname);
+  if (output_fd < 0) {
+    LOG_DEBUG("Failed to begin transaction for output file '%s': %s",
+              output_fname, strerror(errno));
+    return EXIT_FAILURE;
+  }
+  LOG_DEBUG("Began transaction for output file '%s' (fd = %d)", output_fname,
+            output_fd);
 
-  int fd = zopen(output_file);
-  if (fd < 0) {
-    LOG_DEBUG("Failed to begin transaction for file '%s': %s", output_file,
+  int exit_code = EXIT_FAILURE;
+  bool commit_transaction = false;
+  bool input_is_stdin = strcmp(input_fname, "-") == 0;
+  int input_fd = STDIN_FILENO;
+
+  if (input_is_stdin) {
+    LOG_DEBUG("Using stdin (fd = %d) as input file", input_fd);
+  } else {
+    input_fd = open(input_fname, O_RDONLY);
+    if (input_fd < 0) {
+      LOG_DEBUG("Failed to open input file '%s': %s", input_fname,
+                strerror(errno));
+      goto FAIL;
+    }
+    LOG_DEBUG("Opened input file '%s' (fd = %d)", input_fname, input_fd);
+  }
+
+  if (filecopy(input_fd, output_fd) != 0) {
+    LOG_DEBUG("Failed to write content from input file '%s' (fd = %d) to "
+              "output file '%s' (fd = %d)",
+              input_fname, input_fd, output_fname, output_fd);
+    goto FAIL;
+  }
+
+  exit_code = EXIT_SUCCESS;
+  commit_transaction = true;
+
+FAIL:
+
+  if (!input_is_stdin && (input_fd != -1)) {
+    if (close(input_fd) == 0) {
+      LOG_DEBUG("Closed input file '%s' (fd = %d)", input_fname, input_fd);
+    } else {
+      LOG_DEBUG("Failed to close input file '%s' (fd = %d): %s", input_fname,
+                input_fd, strerror(errno));
+    }
+  }
+
+  if (zclose(output_fd, commit_transaction) == 0) {
+    LOG_DEBUG("Successfully %s transaction for output file '%s' (fd = %d)",
+              commit_transaction ? "committed" : "aborted", output_fname,
+              output_fd);
+  } else {
+    LOG_DEBUG("Failed to %s transaction for file '%s' (fd = %d): %s",
+              commit_transaction ? "commit" : "abort", output_fname, output_fd,
               strerror(errno));
-    return EXIT_FAILURE;
   }
-  LOG_DEBUG("Began transaction for file '%s' (fd = %d)", output_file, fd);
 
-  if (zclose(fd) != 0) {
-    LOG_DEBUG("Failed to commit transaction for file '%s' (fd = %d)",
-              output_file, fd);
-    return EXIT_FAILURE;
-  }
-  LOG_DEBUG("Committed transaction for file '%s' (fd = %d)", output_file, fd);
-
-  return EXIT_SUCCESS;
+  return exit_code;
 }
