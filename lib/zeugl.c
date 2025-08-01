@@ -17,6 +17,7 @@
 #include <unistd.h>
 
 #include "logger.h"
+#include "utils.h"
 #include "zeugl.h"
 
 struct zfile {
@@ -29,112 +30,6 @@ struct zfile {
 
 static pthread_mutex_t MUTEX = PTHREAD_MUTEX_INITIALIZER;
 static struct zfile *OPEN_FILES = NULL;
-
-static int filecopy(int src, int dst) {
-  char buffer[4096];
-
-  int eof = 0;
-  do {
-    size_t n_read = 0;
-    do {
-      ssize_t ret = read(src, buffer + n_read, sizeof(buffer) - n_read);
-      if (ret < 0) {
-        if (errno == EINTR) {
-          /* Interrupted! It happens, just continue... */
-          continue;
-        }
-
-        LOG_DEBUG("Failed to read from source file (fd = %d): %s", src,
-                  strerror(errno));
-        return -1;
-      }
-
-      /* Is End-of-File reached? */
-      eof = (ret == 0);
-
-      n_read += (size_t)ret;
-    } while (!eof && (n_read < sizeof(buffer)));
-    LOG_DEBUG("Read %zu bytes from source file (fd = %d)", n_read, src);
-
-    size_t n_written = 0;
-    do {
-      ssize_t ret = write(dst, buffer + n_written, n_read - n_written);
-      if (ret < 0) {
-        if (errno == EINTR) {
-          /* Interrupted! It happens, just continue... */
-          continue;
-        }
-
-        LOG_DEBUG("Failed to write content to destination file (fd = %d): %s",
-                  dst, strerror(errno));
-        return -1;
-      }
-
-      n_written += (size_t)ret;
-    } while (n_written < n_read);
-    LOG_DEBUG("Wrote %zu bytes to destination file (fd = %d)", n_written, dst);
-  } while (!eof);
-
-  return 0;
-}
-
-static int atomic_filecopy(int src, int dst) {
-  int ret = 0;
-
-  struct stat sb_before;
-  if (fstat(src, &sb_before) != 0) {
-    LOG_DEBUG("Failed to retrieve information about source file (fd = %d): %s",
-              src, strerror(errno));
-    return -1;
-  }
-  LOG_DEBUG("Retrieved information about source file (fd = %d) before copy",
-            src);
-
-  if (flock(src, LOCK_SH) != 0) {
-    LOG_DEBUG("Failed to get shared lock for source file (fd = %d): %s", src,
-              strerror(errno));
-    return -1;
-  }
-  LOG_DEBUG("Requested shared lock for source file (fd = %d)", src);
-
-  if (filecopy(src, dst) != 0) {
-    LOG_DEBUG("Failed to copy content from source file (fd = %d) to "
-              "destination file (fd = %d)",
-              src, dst);
-    goto FAIL;
-  }
-
-  struct stat sb_after;
-  if (fstat(src, &sb_after) != 0) {
-    LOG_DEBUG("Failed to retrieve information about source file (fd = %d): %s",
-              src, strerror(errno));
-    goto FAIL;
-  }
-  LOG_DEBUG("Retrieved information about source file (fd = %d) after copy",
-            src);
-
-  if ((sb_before.st_mtim.tv_sec != sb_after.st_mtim.tv_sec) ||
-      (sb_before.st_mtim.tv_nsec != sb_after.st_mtim.tv_nsec)) {
-    LOG_DEBUG("Source file (fd = %d) was modified while copying contents to "
-              "destination file (%d)",
-              src, dst);
-    errno = EBUSY;
-    goto FAIL;
-  }
-  LOG_DEBUG("Source file (fd = %d) appears to not be modified during file copy",
-            src);
-
-  ret = 0;
-FAIL:
-  if (flock(src, LOCK_UN) != 0) {
-    LOG_DEBUG("Failed to release shared lock for source file (fd = %d): %s",
-              src, strerror(errno));
-    return -1;
-  }
-  LOG_DEBUG("Released shared lock for source file (fd = %d)", src);
-
-  return ret;
-}
 
 int zopen(const char *fname) {
   assert(fname != NULL);
@@ -356,9 +251,17 @@ static int wack_a_mole(const char *fname) {
   }
   LOG_DEBUG("Reached End-of-Directory '%s'", dname);
 
-  rename(survivor, fname); /* We don't care if it fails */
-  LOG_DEBUG("Swapped the last survivor (mole '%s') with the original file '%s'",
-            survivor, fname);
+  if (rename(survivor, fname) == -1) {
+    /* We don't really care if it fails. It just means that another agent
+     * adopted the mole and beat us to it. */
+    LOG_DEBUG("Failed to replace last survivor (mole '%s') with the original "
+              "file '%s'",
+              survivor, fname);
+  } else {
+    LOG_DEBUG(
+        "Replaced the last survivor (mole '%s') with the original file '%s'",
+        survivor, fname);
+  }
 
   ret = 0;
 FAIL:
