@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Test original file is missing
+# Test input file is missing
 
 INPUTFILE=input.txt
 TESTFILE=testfile.txt

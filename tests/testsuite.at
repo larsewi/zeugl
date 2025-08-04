@@ -38,3 +38,7 @@ AT_CLEANUP
 AT_SETUP(Test expected content from input file)
 AT_CHECK(PATH="$abs_top_builddir/cli:$PATH" "$abs_top_builddir/tests/07_test.sh", 0, ignore)
 AT_CLEANUP
+
+AT_SETUP(Test file is not truncated)
+AT_CHECK(PATH="$abs_top_builddir/cli:$PATH" "$abs_top_builddir/tests/08_test.sh", 0, ignore)
+AT_CLEANUP
