@@ -125,6 +125,30 @@ int zopen(const char *fname, int flags, ...) {
                   file->orig, fd, strerror(errno));
       }
     }
+  } else {
+    struct stat sb;
+    if (lstat(file->orig, &sb) == 0) {
+      file->mode = sb.st_mode & 0777; /* Don't keep user bit */
+      LOG_DEBUG("Retrieved file mode %04jo from original file '%s'",
+                (uintmax_t)file->mode, file->orig);
+      LOG_DEBUG("Using original file mode %04jo", (uintmax_t)file->mode);
+    } else {
+      if ((flags & Z_CREATE) && (errno == ENOENT)) {
+        /* If Z_CREATE was specified, then ENOENT can be expected */
+        LOG_DEBUG("Original file '%s' does not exist", file->orig);
+
+        /* Use mode specified in zopen() */
+        va_list ap;
+        va_start(ap, flags);
+        file->mode = va_arg(ap, mode_t) & 0777; /* Don't keep user bit */
+        va_end(ap);
+        LOG_DEBUG("Using specified file mode %04jo", (uintmax_t)file->mode);
+      } else {
+        LOG_DEBUG("Failed to get file mode from original file '%s': %s",
+                  file->orig, strerror(errno));
+        goto FAIL;
+      }
+    }
   }
 
   int ret = pthread_mutex_lock(&OPEN_FILES_MUTEX);

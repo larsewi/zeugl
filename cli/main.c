@@ -35,12 +35,13 @@ int main(int argc, char *argv[]) {
       errno = 0;
       unsigned long ret = strtoul(optarg, &endptr, 8);
       if (errno != 0) {
-        LOG_DEBUG("Failed to parse mode string '%s': %s", endptr, strerror(errno));
+        LOG_DEBUG("Failed to parse mode string '%s': %s", endptr,
+                  strerror(errno));
         return EXIT_FAILURE;
       }
       if ((*optarg == '\0') || (*endptr != '\0') || (ret > 0777)) {
-          LOG_DEBUG("Failed to parse mode string '%s': Bad argument", endptr);
-          return EXIT_FAILURE;
+        LOG_DEBUG("Failed to parse mode string '%s': Bad argument", endptr);
+        return EXIT_FAILURE;
       }
       mode = (mode_t)ret;
     } break;

@@ -8,7 +8,7 @@ EXP_MODE=644
 touch $TESTFILE
 chmod $EXP_MODE $TESTFILE
 
-echo "Hello zeugl" | zeugl -d -c 600 $TESTFILE
+echo "Hello zeugl" | zeugl -dtc 600 $TESTFILE
 
 ACT_MODE=$(stat $TESTFILE --format %a)
 if [ "$ACT_MODE" != "$EXP_MODE" ]; then

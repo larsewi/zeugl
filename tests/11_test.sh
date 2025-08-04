@@ -1,16 +1,13 @@
 #!/bin/bash
 
-# Test that permission mode bits on existing file are kept
+# Test that file is created with correct permission mode bits when truncated
 
-TESTFILE=testfile.txt
 EXP_MODE=644
+TESTFILE=testfile.txt
 
-touch $TESTFILE
-chmod $EXP_MODE $TESTFILE
-
-echo "Hello zeugl" | zeugl -d -c 600 $TESTFILE
-
+echo "Hello zeugl" | zeugl -dtc 644 $TESTFILE
 ACT_MODE=$(stat $TESTFILE --format %a)
+
 if [ "$ACT_MODE" != "$EXP_MODE" ]; then
     echo "$(basename "$0"): error: Expected mode $EXP_MODE, but got $ACT_MODE" 1>&2
     exit 1
