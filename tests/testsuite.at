@@ -19,6 +19,7 @@ AT_CHECK(echo -n Hello Zeugl, 0, Hello Zeugl)
 AT_CLEANUP
 
 AT_SETUP([Run shellcheck on all test scripts])
+AT_SKIP_IF(! command -v shellcheck)
 for file in "$abs_top_builddir/tests/??_test.sh"; do
   AT_CHECK([shellcheck $file])
 done
