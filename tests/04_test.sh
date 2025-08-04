@@ -4,4 +4,4 @@
 
 TESTFILE=testfile.txt
 
-echo "Hello zeugl" | zeugl -d testfile.txt
+echo "Hello zeugl" | zeugl -d $TESTFILE
