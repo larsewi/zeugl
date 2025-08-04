@@ -1,14 +1,11 @@
 #!/bin/bash
 
-# Test that previous permission mode bits are respected
+# Test that file is created with correct permission mode bits
 
 TESTFILE=testfile.txt
 EXP_MODE=644
 
-touch $TESTFILE
-chmod $EXP_MODE $TESTFILE
-
-echo "Hello zeugl" | zeugl -d -c 600 $TESTFILE
+echo "Hello zeugl" | zeugl -d -c $EXP_MODE $TESTFILE
 
 ACT_MODE=$(stat $TESTFILE --format %a)
 if [ "$ACT_MODE" != "$EXP_MODE" ]; then

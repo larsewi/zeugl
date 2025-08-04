@@ -1,11 +1,12 @@
 #!/bin/bash
 
-# Test that file has expected content from stdin
+# Test that file is not truncated by default
 
+EXP_CONTENT="bar foo baz"
 TESTFILE=testfile.txt
-EXP_CONTENT="Hello zeugl"
+echo "foo bar baz" > $TESTFILE
 
-echo "$EXP_CONTENT" | zeugl -d -c 644 $TESTFILE
+echo -n "bar foo" | zeugl -d $TESTFILE
 ACT_CONTENT=$(cat $TESTFILE)
 
 if [ "$ACT_CONTENT" != "$EXP_CONTENT" ]; then

@@ -1,12 +1,14 @@
 #!/bin/bash
 
-# Test that file is not truncated by default
+# Test that file has expected content from input file
 
-EXP_CONTENT="bar foo baz"
+INPUTFILE=input.txt
 TESTFILE=testfile.txt
-echo "foo bar baz" > $TESTFILE
 
-echo -n "bar foo" | zeugl -d $TESTFILE
+echo "Hello zeugl" > $INPUTFILE
+EXP_CONTENT=$(cat $INPUTFILE)
+
+zeugl -d -c 644 -f $INPUTFILE $TESTFILE
 ACT_CONTENT=$(cat $TESTFILE)
 
 if [ "$ACT_CONTENT" != "$EXP_CONTENT" ]; then
