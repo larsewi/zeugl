@@ -15,36 +15,36 @@ AT_SETUP([Test suite sanity check])
 AT_CHECK(echo -n Hello Zeugl, 0, Hello Zeugl)
 AT_CLEANUP
 
-AT_SETUP([Test shellcheck all test files])
+AT_SETUP([Run shellcheck on all test scripts])
 for file in "$abs_top_builddir/tests/??_test.sh"; do
   AT_CHECK([shellcheck $file])
 done
 AT_CLEANUP
 
-AT_SETUP(Test create file with mode)
+AT_SETUP(Create file with mode)
 AT_CHECK(PATH="$abs_top_builddir/cli:$PATH" "$abs_top_builddir/tests/03_test.sh", 0, ignore)
 AT_CLEANUP
 
-AT_SETUP(Test existing file mode is kept)
+AT_SETUP(Existing file mode is kept)
 AT_CHECK(PATH="$abs_top_builddir/cli:$PATH" "$abs_top_builddir/tests/04_test.sh", 0, ignore)
 AT_CLEANUP
 
-AT_SETUP(Test original file is missing)
+AT_SETUP(Fail if original file is missing)
 AT_CHECK(PATH="$abs_top_builddir/cli:$PATH" "$abs_top_builddir/tests/05_test.sh", 1, ignore)
 AT_CLEANUP
 
-AT_SETUP(Test input file is missing)
+AT_SETUP(Fail if input file is missing)
 AT_CHECK(PATH="$abs_top_builddir/cli:$PATH" "$abs_top_builddir/tests/06_test.sh", 1, ignore)
 AT_CLEANUP
 
-AT_SETUP(Test expected content from stdin)
+AT_SETUP(Expected content from stdin)
 AT_CHECK(PATH="$abs_top_builddir/cli:$PATH" "$abs_top_builddir/tests/07_test.sh", 0, ignore)
 AT_CLEANUP
 
-AT_SETUP(Test expected content from input file)
+AT_SETUP(Expected content from input file)
 AT_CHECK(PATH="$abs_top_builddir/cli:$PATH" "$abs_top_builddir/tests/08_test.sh", 0, ignore)
 AT_CLEANUP
 
-AT_SETUP(Test file is not truncated)
+AT_SETUP(File is not truncated by default)
 AT_CHECK(PATH="$abs_top_builddir/cli:$PATH" "$abs_top_builddir/tests/09_test.sh", 0, ignore)
 AT_CLEANUP
