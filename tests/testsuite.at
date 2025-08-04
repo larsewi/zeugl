@@ -26,3 +26,15 @@ AT_CLEANUP
 AT_SETUP(Test original file is missing)
 AT_CHECK(PATH="$abs_top_builddir/cli:$PATH" "$abs_top_builddir/tests/04_test.sh", 1, ignore)
 AT_CLEANUP
+
+AT_SETUP(Test input file is missing)
+AT_CHECK(PATH="$abs_top_builddir/cli:$PATH" "$abs_top_builddir/tests/05_test.sh", 1, ignore)
+AT_CLEANUP
+
+AT_SETUP(Test expected content from stdin)
+AT_CHECK(PATH="$abs_top_builddir/cli:$PATH" "$abs_top_builddir/tests/06_test.sh", 0, ignore)
+AT_CLEANUP
+
+AT_SETUP(Test expected content from input file)
+AT_CHECK(PATH="$abs_top_builddir/cli:$PATH" "$abs_top_builddir/tests/07_test.sh", 0, ignore)
+AT_CLEANUP
