@@ -60,7 +60,6 @@ int zopen(const char *fname, int flags, ...) {
   }
 
   stpcpy(stpcpy(file->temp, file->orig), ".XXXXXX");
-  LOG_DEBUG("Generated template for temporary filename '%s'", file->temp);
 
   file->fd = mkstemp(file->temp);
   if (file->fd < 0) {
