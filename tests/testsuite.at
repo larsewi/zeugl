@@ -2,14 +2,17 @@ AT_INIT
 AT_COLOR_TESTS
 
 m4_define([FIND_ZEUGL], [[set -x
-if test "x${AUTOTEST_PATH}" == "x${at_testdir}"; then
-    zeugl="${abs_top_builddir}/cli/zeugl"
-    compare="$(dirname ${zeugl})/.libs/lt-zeugl"
+if test "$AUTOTEST_PATH" == "$at_testdir"; then
+    export PATH="$abs_top_builddir/cli:$PATH"
+    zeugl="$abs_top_builddir/cli/zeugl"
+    compare="$(dirname "$zeugl")/.libs/lt-zeugl"
 else
-    LD_LIBRARY_PATH="${AUTOTEST_PATH}/../lib" export LD_LIBRARY_PATH
-    zeugl="${AUTOTEST_PATH}/zeugl"
+    export PATH="$AUTOTEST_PATH/cli:$PATH"
+    LD_LIBRARY_PATH="$AUTOTEST_PATH/../lib" export LD_LIBRARY_PATH
+    zeugl="$AUTOTEST_PATH/zeugl"
     compare="$(zeugl)"
 fi]])
+
 
 AT_SETUP([Test suite sanity check])
 AT_CHECK(echo -n Hello Zeugl, 0, Hello Zeugl)
@@ -22,41 +25,59 @@ done
 AT_CLEANUP
 
 AT_SETUP(Create file with mode)
-AT_CHECK(PATH="$abs_top_builddir/cli:$PATH" "$abs_top_builddir/tests/03_test.sh", 0, ignore)
+FIND_ZEUGL()
+AT_CHECK("$abs_top_builddir/tests/03_test.sh", 0, ignore)
 AT_CLEANUP
 
 AT_SETUP(Existing file mode is kept)
-AT_CHECK(PATH="$abs_top_builddir/cli:$PATH" "$abs_top_builddir/tests/04_test.sh", 0, ignore)
+FIND_ZEUGL()
+AT_CHECK("$abs_top_builddir/tests/04_test.sh", 0, ignore)
 AT_CLEANUP
 
 AT_SETUP(Fail if original file is missing)
-AT_CHECK(PATH="$abs_top_builddir/cli:$PATH" "$abs_top_builddir/tests/05_test.sh", 1, ignore)
+FIND_ZEUGL()
+AT_CHECK("$abs_top_builddir/tests/05_test.sh", 1, ignore)
 AT_CLEANUP
 
 AT_SETUP(Fail if input file is missing)
-AT_CHECK(PATH="$abs_top_builddir/cli:$PATH" "$abs_top_builddir/tests/06_test.sh", 1, ignore)
+FIND_ZEUGL()
+AT_CHECK("$abs_top_builddir/tests/06_test.sh", 1, ignore)
 AT_CLEANUP
 
 AT_SETUP(Expected content from stdin)
-AT_CHECK(PATH="$abs_top_builddir/cli:$PATH" "$abs_top_builddir/tests/07_test.sh", 0, ignore)
+FIND_ZEUGL()
+AT_CHECK("$abs_top_builddir/tests/07_test.sh", 0, ignore)
 AT_CLEANUP
 
 AT_SETUP(Expected content from input file)
-AT_CHECK(PATH="$abs_top_builddir/cli:$PATH" "$abs_top_builddir/tests/08_test.sh", 0, ignore)
+FIND_ZEUGL()
+AT_CHECK("$abs_top_builddir/tests/08_test.sh", 0, ignore)
 AT_CLEANUP
 
 AT_SETUP(File is not truncated by default)
-AT_CHECK(PATH="$abs_top_builddir/cli:$PATH" "$abs_top_builddir/tests/09_test.sh", 0, ignore)
+FIND_ZEUGL()
+AT_CHECK("$abs_top_builddir/tests/09_test.sh", 0, ignore)
 AT_CLEANUP
 
 AT_SETUP(File is truncated when specified)
-AT_CHECK(PATH="$abs_top_builddir/cli:$PATH" "$abs_top_builddir/tests/10_test.sh", 0, ignore)
+FIND_ZEUGL()
+AT_CHECK("$abs_top_builddir/tests/10_test.sh", 0, ignore)
 AT_CLEANUP
 
 AT_SETUP(Create file with mode when truncated)
-AT_CHECK(PATH="$abs_top_builddir/cli:$PATH" "$abs_top_builddir/tests/11_test.sh", 0, ignore)
+FIND_ZEUGL()
+AT_CHECK("$abs_top_builddir/tests/11_test.sh", 0, ignore)
 AT_CLEANUP
 
 AT_SETUP(Existing file mode is kept when truncated)
-AT_CHECK(PATH="$abs_top_builddir/cli:$PATH" "$abs_top_builddir/tests/12_test.sh", 0, ignore)
+FIND_ZEUGL()
+AT_CHECK("$abs_top_builddir/tests/12_test.sh", 0, ignore)
+AT_CLEANUP
+
+AT_SETUP(Check formatting on source files)
+AT_SKIP_IF(! command -v clang-format)
+AT_CHECK([clang-format --dry-run --Werror "$abs_top_builddir/cli/main.c"])
+for file in "$abs_top_builddir"/lib/*.{c,h}; do
+    AT_CHECK(clang-format --dry-run --Werror "$file")
+done
 AT_CLEANUP
