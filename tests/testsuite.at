@@ -15,6 +15,10 @@ AT_SETUP([Test suite sanity check])
 AT_CHECK([echo -n Hello Zeugl], , [Hello Zeugl])
 AT_CLEANUP
 
-AT_SETUP([Test zeugl create with mode 644])
-AT_CHECK([PATH="$abs_top_builddir/cli:$PATH" "$abs_top_builddir/tests/test_create.sh"], [], [ignore])
+AT_SETUP([Test create with mode])
+AT_CHECK([PATH="$abs_top_builddir/cli:$PATH" "$abs_top_builddir/tests/02_test.sh"], [], [ignore])
+AT_CLEANUP
+
+AT_SETUP([Test existing mode kept])
+AT_CHECK([PATH="$abs_top_builddir/cli:$PATH" "$abs_top_builddir/tests/03_test.sh"], [], [ignore])
 AT_CLEANUP
