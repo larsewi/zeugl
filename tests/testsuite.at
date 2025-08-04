@@ -12,10 +12,9 @@ else
 fi]])
 
 AT_SETUP([Test suite sanity check])
-AT_CHECK([echo "Hello Zeugl"], , [Hello Zeugl
-])
+AT_CHECK([echo -n Hello Zeugl], , [Hello Zeugl])
 AT_CLEANUP
 
-AT_SETUP([Test Z_CREATE])
-AT_CHECK(["${abs_top_builddir}"/tests/test_create.sh], [], [ignore])
+AT_SETUP([Test zeugl create with mode 644])
+AT_CHECK([PATH="$abs_top_builddir/cli:$PATH" "$abs_top_builddir/tests/test_create.sh"], [], [ignore])
 AT_CLEANUP
