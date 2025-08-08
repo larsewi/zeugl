@@ -31,3 +31,11 @@ $(srcdir)/package.m4: $(top_srcdir)/configure.ac
 
 $(TESTSUITE): $(TESTSOURCES) $(srcdir)/package.m4
 	$(AM_V_GEN) $(AUTOTEST) -I '$(srcdir)' -o $@.tmp $@.at; mv $@.tmp $@
+
+AM_CFLAGS = -Wall -Wextra -Wconversion -Wformat
+AM_CPPFLAGS = -I$(top_srcdir)/ -I$(top_srcdir)/lib/
+
+check_PROGRAMS = test_multithreaded
+
+test_multithreaded_LDADD = $(top_srcdir)/lib/libzeugl.la
+test_multithreaded_SOURCES = test_multithreaded.c

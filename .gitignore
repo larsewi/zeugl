@@ -119,3 +119,4 @@ zeugl
 build/*
 .vscode/*
 tests/testsuite.dir/*
+test_multithreaded

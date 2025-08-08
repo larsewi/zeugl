@@ -80,10 +80,14 @@ FIND_ZEUGL()
 AT_CHECK("$abs_top_builddir/tests/13_test.sh", 0, ignore)
 AT_CLEANUP
 
+AT_SETUP(Test multithreaded files)
+FIND_ZEUGL()
+AT_CHECK("$abs_top_builddir/tests/test_multithreaded" 8 testfile, 0, ignore)
+AT_CLEANUP
+
 AT_SETUP(Check formatting on source files)
 AT_SKIP_IF(! command -v clang-format)
-AT_CHECK([clang-format --dry-run --Werror "$abs_top_builddir/cli/main.c"])
-for file in "$abs_top_builddir"/lib/*.{c,h}; do
+for file in "$abs_top_builddir"/**/*.{c,h}; do
     AT_CHECK(clang-format --dry-run --Werror "$file")
 done
 AT_CLEANUP
