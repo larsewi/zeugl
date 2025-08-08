@@ -26,6 +26,7 @@ AM_PROG_AR
 LT_INIT
 
 # Checks for libraries.
+AX_PTHREAD
 
 # Checks for header files.
 AC_CHECK_HEADER_STDBOOL
@@ -46,8 +47,6 @@ AC_CHECK_FUNCS([strerror
                 stpcpy
                 strdup
                 strtoul])
-
-AX_PTHREAD
 
 AC_CONFIG_TESTDIR([tests])
 AC_CONFIG_FILES([Makefile
