@@ -13,7 +13,8 @@
 
 #define N_ARGS 3
 #define DEV_RANDOM "/dev/random"
-#define GIBIBYTE(x) (x * 1024 * 1024 * 1024)
+#define FILESIZE (10 * 1024 * 1024)
+#define MIN(a, b) ((a <= b) ? a : b)
 
 struct thread_data {
   int id;
@@ -42,6 +43,51 @@ void *start_routine(void *arg) {
   printf("[thread %d] Atomically opened source file '%s' (fd = %d)\n",
          thread_data->id, thread_data->filename, dst);
 
+  size_t tot_written = 0;
+  char buffer[BUFSIZ];
+  do {
+    size_t n_read = 0;
+    size_t tot_remaining = FILESIZE - tot_written;
+    do {
+      ssize_t ret =
+          read(src, buffer + n_read, MIN(BUFSIZ - n_read, tot_remaining));
+      if (ret < 0) {
+        if (errno == EINTR) {
+          continue;
+        }
+        fprintf(
+            stderr,
+            "[thread %d] Failed to read from source file '%s' (fd = %d): %s\n",
+            thread_data->id, DEV_RANDOM, src, strerror(errno));
+        return NULL;
+      }
+
+      n_read += (size_t)ret;
+    } while (n_read < BUFSIZ);
+    printf("[thread %d] Read %zu bytes from source file '%s' (fd = %d)",
+           thread_data->id, n_read, DEV_RANDOM, src);
+
+    size_t n_written = 0;
+    do {
+      ssize_t ret = write(dst, buffer + n_written, n_read - n_written);
+      if (ret < 0) {
+        if (errno == EINTR) {
+          continue;
+        }
+
+        fprintf(stderr,
+                "[thread %d] Failed to write to destination file '%s' (fd = "
+                "%d): %s",
+                thread_data->id, thread_data->filename, dst, strerror(errno));
+        return NULL;
+      }
+
+      n_written += (size_t)ret;
+    } while (n_written < n_read);
+
+    tot_written += n_written;
+  } while (tot_written < FILESIZE);
+
   if (zclose(dst, true) != 0) {
     fprintf(stderr,
             "[thread %d] Failed to atomically close destination file '%s' (fd "
@@ -68,7 +114,7 @@ void *start_routine(void *arg) {
 int main(int argc, char *argv[]) {
   if (argc < N_ARGS) {
     fprintf(stderr,
-            "[thread main] Bad argument count expected at least %d arguments, "
+            "[thread m] Bad argument count expected at least %d arguments, "
             "got %d\n",
             N_ARGS, argc);
     return EXIT_FAILURE;
@@ -76,10 +122,9 @@ int main(int argc, char *argv[]) {
 
   const int num_threads = atoi(argv[1]);
   if (num_threads <= 0) {
-    fprintf(
-        stderr,
-        "[thread main] Bad argument: Expected number of threads, got '%s'\n",
-        argv[1]);
+    fprintf(stderr,
+            "[thread m] Bad argument: Expected number of threads, got '%s'\n",
+            argv[1]);
     return EXIT_FAILURE;
   }
 
@@ -93,25 +138,25 @@ int main(int argc, char *argv[]) {
 
     int ret = pthread_create(&threads[i], NULL, start_routine, &thread_data[i]);
     if (ret != 0) {
-      fprintf(stderr, "[thread main] Failed to create thread: %s\n",
+      fprintf(stderr, "[thread m] Failed to create thread: %s\n",
               strerror(ret));
       return EXIT_FAILURE;
     }
-    printf("[thread main] Created thread %d\n", i);
+    printf("[thread m] Created thread %d\n", i);
   }
 
   for (int i = 0; i < num_threads; i++) {
     void *retval;
     int ret = pthread_join(threads[i], &retval);
     if (ret != 0) {
-      fprintf(stderr, "[thread main] Failed to join thread %d: %s\n", i,
+      fprintf(stderr, "[thread m] Failed to join thread %d: %s\n", i,
               strerror(ret));
       return EXIT_FAILURE;
     }
-    printf("[thread main] Joined thread %d\n", i);
+    printf("[thread m] Joined thread %d\n", i);
 
     if (!thread_data[i].success) {
-      fprintf(stderr, "[thread main] Thread %d returned failure\n", i);
+      fprintf(stderr, "[thread m] Thread %d returned failure\n", i);
       return EXIT_FAILURE;
     }
   }
