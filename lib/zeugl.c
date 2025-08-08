@@ -19,8 +19,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "filecopy.h"
 #include "logger.h"
-#include "utils.h"
+#include "wackamole.h"
 #include "zeugl.h"
 
 struct zfile {
@@ -59,6 +60,7 @@ int zopen(const char *fname, int flags, ...) {
     goto FAIL;
   }
 
+  /* Create template filename */
   stpcpy(stpcpy(file->temp, file->orig), ".XXXXXX");
 
   file->fd = mkstemp(file->temp);
@@ -68,19 +70,44 @@ int zopen(const char *fname, int flags, ...) {
   }
   LOG_DEBUG("Created temporary file '%s' (fd = %d)", file->temp, file->fd);
 
-  if (!(flags & Z_TRUNCATE)) {
+  /* Extract mode argument from zopen() if Z_CREATE was specified */
+  mode_t mode;
+  if (flags & Z_CREATE) {
+    va_list ap;
+    va_start(ap, flags);
+    mode = va_arg(ap, mode_t) & 0777; /* Don't keep user bit */
+    va_end(ap);
+  }
+
+  if (flags & Z_TRUNCATE) {
+    struct stat sb;
+    if (lstat(file->orig, &sb) == 0) {
+      file->mode = sb.st_mode & 0777; /* Don't keep user bit */
+      LOG_DEBUG("Original file '%s' exists: Using original mode %04jo",
+                file->orig, (uintmax_t)file->mode);
+    } else {
+      if ((flags & Z_CREATE) && (errno == ENOENT)) {
+        /* Use mode specified in argument */
+        file->mode = mode;
+        LOG_DEBUG("Original file '%s' does not exist: "
+                  "Using specified mode %04jo",
+                  file->orig, (uintmax_t)file->mode);
+      } else {
+        LOG_DEBUG("Failed to get mode from original file '%s': %s", file->orig,
+                  strerror(errno));
+        goto FAIL;
+      }
+    }
+  } else {
     int fd = open(file->orig, O_RDONLY);
     if (fd < 0) {
       if ((flags & Z_CREATE) && (errno == ENOENT)) {
         /* If Z_CREATE was specified, then ENOENT can be expected */
-        LOG_DEBUG("Original file '%s' does not exist", file->orig);
-
-        /* Use mode specified in zopen() */
-        va_list ap;
-        va_start(ap, flags);
-        file->mode = va_arg(ap, mode_t) & 0777; /* Don't keep user bit */
-        va_end(ap);
-        LOG_DEBUG("Using specified file mode %04jo", (uintmax_t)file->mode);
+        /* Use mode specified in argument */
+        file->mode = mode;
+        LOG_DEBUG("Original file '%s' does not exist: "
+                  "Using specified mode %04jo",
+                  file->orig, (uintmax_t)file->mode);
       } else {
         LOG_DEBUG("Failed to open original file '%s' in read-only mode: %s",
                   file->orig, strerror(errno));
@@ -92,17 +119,15 @@ int zopen(const char *fname, int flags, ...) {
 
       struct stat sb;
       if (fstat(fd, &sb) != 0) {
-        LOG_DEBUG(
-            "Failed to get file mode from original file '%s' (fd = %d): %s",
-            file->orig, fd, strerror(errno));
+        LOG_DEBUG("Failed to get mode from original file '%s' (fd = %d): %s",
+                  file->orig, fd, strerror(errno));
         goto FAIL;
       }
       file->mode = sb.st_mode & 0777; /* Don't keep user bit */
-      LOG_DEBUG("Retrieved file mode %04jo from original file '%s' (fd = %d)",
+      LOG_DEBUG("Using mode %04jo from original file '%s' (fd = %d)",
                 (uintmax_t)file->mode, file->orig, fd);
-      LOG_DEBUG("Using original file mode %04jo", (uintmax_t)file->mode);
 
-      if (atomic_filecopy(fd, file->fd) != 0) {
+      if (!atomic_filecopy(fd, file->fd)) {
         LOG_DEBUG("Failed to copy content from original file '%s' (fd = %d) to "
                   "temporary file '%s' (fd = %d): %s",
                   file->orig, fd, file->temp, file->fd, strerror(errno));
@@ -125,30 +150,18 @@ int zopen(const char *fname, int flags, ...) {
                   file->orig, fd, strerror(errno));
       }
     }
-  } else {
-    struct stat sb;
-    if (lstat(file->orig, &sb) == 0) {
-      file->mode = sb.st_mode & 0777; /* Don't keep user bit */
-      LOG_DEBUG("Retrieved file mode %04jo from original file '%s'",
-                (uintmax_t)file->mode, file->orig);
-      LOG_DEBUG("Using original file mode %04jo", (uintmax_t)file->mode);
-    } else {
-      if ((flags & Z_CREATE) && (errno == ENOENT)) {
-        /* If Z_CREATE was specified, then ENOENT can be expected */
-        LOG_DEBUG("Original file '%s' does not exist", file->orig);
+  }
 
-        /* Use mode specified in zopen() */
-        va_list ap;
-        va_start(ap, flags);
-        file->mode = va_arg(ap, mode_t) & 0777; /* Don't keep user bit */
-        va_end(ap);
-        LOG_DEBUG("Using specified file mode %04jo", (uintmax_t)file->mode);
-      } else {
-        LOG_DEBUG("Failed to get file mode from original file '%s': %s",
-                  file->orig, strerror(errno));
-        goto FAIL;
-      }
+  if (!(flags & Z_APPEND)) {
+    if (lseek(file->fd, 0, SEEK_SET) != 0) {
+      LOG_DEBUG("Failed to reposition file offset to the beginning of the file "
+                "'%s' (fd = %d): %s",
+                file->temp, file->fd, strerror(errno));
+      goto FAIL;
     }
+    LOG_DEBUG("Repositioned the file offset to the beginning of the file "
+              "'%s' (fd = %d)",
+              file->temp, file->fd);
   }
 
   int ret = pthread_mutex_lock(&OPEN_FILES_MUTEX);
@@ -159,22 +172,11 @@ int zopen(const char *fname, int flags, ...) {
   }
   LOG_DEBUG("Successfully acquired mutex protecting list of open files");
 
-  if (!(flags & Z_APPEND)) {
-    if (lseek(file->fd, 0, SEEK_SET) != 0) {
-      LOG_DEBUG("Failed to reposition the file offset for file '%s' (fd = %d) "
-                "to the beginning of the file: %s",
-                file->temp, file->fd, strerror(errno));
-      goto FAIL;
-    }
-    LOG_DEBUG("Repositioned the file offset for file '%s' (fd = %d) to the "
-              "beginning of the file",
-              file->temp, file->fd);
-  }
-
   file->next = OPEN_FILES;
   OPEN_FILES = file;
-  LOG_DEBUG("Added file '%s' (fd = %d) to list of open files", file->temp,
-            file->fd);
+  LOG_DEBUG("Added file to list of open files "
+            "(orig = '%s', temp = '%s', fd = %d, mode =%04jo)",
+            file->orig, file->temp, file->fd, file->mode);
 
   ret = pthread_mutex_unlock(&OPEN_FILES_MUTEX);
   if (ret != 0) {
@@ -199,6 +201,7 @@ FAIL:
                   file->temp, file->fd, strerror(errno));
       }
     }
+
     if (file->temp != NULL) {
       if (unlink(file->temp) == 0) {
         LOG_DEBUG("Deleted temporary file '%s'", file->temp);
@@ -215,151 +218,6 @@ FAIL:
   }
 
   return -1;
-}
-
-static int create_a_mole(struct zfile *file) {
-  file->mole = malloc(strlen(file->temp) + strlen(".mole") + 1);
-  if (file->mole == NULL) {
-    LOG_DEBUG("Failed to allocate memory: %s", strerror(errno));
-    return -1;
-  }
-
-  stpcpy(stpcpy(file->mole, file->temp), ".mole");
-  LOG_DEBUG("Generated filename for mole '%s'", file->mole);
-
-  if (rename(file->temp, file->mole) != 0) {
-    LOG_DEBUG("Failed to rename '%s' to '%s': %s", file->temp, file->mole,
-              strerror(errno));
-    return -1;
-  }
-  LOG_DEBUG("Renamed '%s' to '%s'", file->temp, file->mole);
-
-  return 0;
-}
-
-static bool file_is_mole(const char *orig, const char *mole) {
-  size_t orig_len = strlen(orig);                  /* Original filename */
-  size_t mole_len = strlen(mole);                  /* Potential mole */
-  size_t uid_len = strlen(".XXXXXX");              /* Unique identifier */
-  size_t suf_len = strlen(".mole");                /* Mole suffix */
-  size_t exp_len = (orig_len + uid_len + suf_len); /* Expected length */
-
-  if (mole_len != exp_len) {
-    /* Potential mole filename has wrong length */
-    return false;
-  }
-
-  if (strncmp(mole, orig, orig_len) != 0) {
-    /* Potential mole filename doesn't start with the original filename */
-    return false;
-  }
-
-  if (strcmp(mole + orig_len + uid_len, ".mole") != 0) {
-    /* Potential mole filename is missing the mole suffix */
-    return false;
-  }
-
-  return true;
-}
-
-static int wack_a_mole(const char *fname) {
-  int ret = -1;
-  DIR *dirp = NULL;
-  char *buf_1 = NULL;    /* Buffer for dirname() */
-  char *buf_2 = NULL;    /* Buffer for basename() */
-  char *survivor = NULL; /* Last survivor mole */
-
-  /* Get directory name */
-  buf_1 = strdup(fname);
-  if (buf_1 == NULL) {
-    LOG_DEBUG("Failed to allocate memory: %s", strerror(errno));
-    goto FAIL;
-  }
-  const char *dname = dirname(buf_1);
-
-  /* Get filename */
-  buf_2 = strdup(fname);
-  if (buf_2 == NULL) {
-    LOG_DEBUG("Failed to allocate memory: %s", strerror(errno));
-    goto FAIL;
-  }
-  const char *bname = basename(buf_2);
-
-  dirp = opendir(dname);
-  if (dirp == NULL) {
-    LOG_DEBUG("Failed to open directory '%s'", dname);
-    goto FAIL;
-  }
-  LOG_DEBUG("Opened directory '%s'", dname);
-
-  errno = 0; /* To distinguish between End-of-Directory and ERROR */
-  struct dirent *dire = readdir(dirp);
-
-  while (dire != NULL) {
-    if (file_is_mole(bname, dire->d_name)) {
-      const char *challenger = dire->d_name;
-
-      LOG_DEBUG("Successfully identified a mole '%s'", challenger);
-
-      if /* Initial survivor */ (survivor == NULL) {
-        survivor = strdup(challenger);
-        if (survivor == NULL) {
-          LOG_DEBUG("Failed to allocate memory: %s", strerror(errno));
-          goto FAIL;
-        }
-        LOG_DEBUG("Initial challenger '%s' was appointed as the new survivor",
-                  survivor);
-      } else if /* New survivor */ (strcmp(challenger, survivor) > 0) {
-        unlink(survivor); /* Don't care if it fails */
-        LOG_DEBUG("Previous survivor '%s' got wacked", survivor);
-        free(survivor);
-
-        survivor = strdup(challenger);
-        if (survivor == NULL) {
-          LOG_DEBUG("Failed to allocate memory: %s", strerror(errno));
-          goto FAIL;
-        }
-        LOG_DEBUG("New challenger '%s' was appointed as the new survivor",
-                  survivor);
-      } else /* Keep old survivor */ {
-        unlink(challenger); /* Don't care if it fails */
-        LOG_DEBUG("New challenger '%s' got wacked", dire->d_name);
-      }
-    }
-
-    errno = 0;
-    dire = readdir(dirp);
-  }
-
-  if (errno != 0) {
-    LOG_DEBUG("Failed to read directory '%s': %s", dname, errno);
-    goto FAIL;
-  }
-  LOG_DEBUG("Reached End-of-Directory '%s'", dname);
-
-  if (rename(survivor, fname) == -1) {
-    /* We don't really care if it fails. It just means that another agent
-     * adopted the mole and beat us to it. */
-    LOG_DEBUG("Failed to replace last survivor (mole '%s') with the original "
-              "file '%s'",
-              survivor, fname);
-  } else {
-    LOG_DEBUG(
-        "Replaced the last survivor (mole '%s') with the original file '%s'",
-        survivor, fname);
-  }
-
-  ret = 0;
-FAIL:
-
-  free(buf_1);
-  free(buf_2);
-  free(survivor);
-  if (dirp != NULL) {
-    closedir(dirp);
-  }
-
-  return ret;
 }
 
 int zclose(int fd, bool commit) {
@@ -415,15 +273,14 @@ int zclose(int fd, bool commit) {
     LOG_DEBUG("Changed file mode for file '%s' to %04jo", file->temp,
               (uintmax_t)file->mode);
 
-    if (create_a_mole(file) != 0) {
-      LOG_DEBUG("Failed to create mole from temporary file '%s'", file->temp);
-      goto FAIL;
-    }
-    LOG_DEBUG("Created a mole '%s' from temporary file '%s'", file->mole,
-              file->temp);
-
-    if (wack_a_mole(file->orig) != 0) {
-      LOG_DEBUG("Failed to wack the moles");
+    if (wack_a_mole(file->orig, file->temp)) {
+      LOG_DEBUG("Successfully executed wack-a-mole algorithm "
+                "(orig = '%s', temp = '%s')",
+                file->orig, file->temp);
+    } else {
+      LOG_DEBUG("Failed to execute wack-a-mole algorithm "
+                "(orig = '%s', temp = '%s'): %s",
+                file->orig, file->temp, strerror(errno));
       goto FAIL;
     }
   } else {

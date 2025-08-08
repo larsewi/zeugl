@@ -7,10 +7,10 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "filecopy.h"
 #include "logger.h"
-#include "utils.h"
 
-int filecopy(int src, int dst) {
+bool filecopy(int src, int dst) {
   char buffer[4096];
 
   int eof = 0;
@@ -26,7 +26,7 @@ int filecopy(int src, int dst) {
 
         LOG_DEBUG("Failed to read from source file (fd = %d): %s", src,
                   strerror(errno));
-        return -1;
+        return false;
       }
 
       /* Is End-of-File reached? */
@@ -47,7 +47,7 @@ int filecopy(int src, int dst) {
 
         LOG_DEBUG("Failed to write content to destination file (fd = %d): %s",
                   dst, strerror(errno));
-        return -1;
+        return false;
       }
 
       n_written += (size_t)ret;
@@ -55,17 +55,17 @@ int filecopy(int src, int dst) {
     LOG_DEBUG("Wrote %zu bytes to destination file (fd = %d)", n_written, dst);
   } while (!eof);
 
-  return 0;
+  return true;
 }
 
-int atomic_filecopy(int src, int dst) {
-  int ret = 0;
+bool atomic_filecopy(int src, int dst) {
+  bool success = false;
 
   struct stat sb_before;
   if (fstat(src, &sb_before) != 0) {
     LOG_DEBUG("Failed to retrieve mtime from source file (fd = %d): %s", src,
               strerror(errno));
-    return -1;
+    return false;
   }
   LOG_DEBUG(
       "Retrieved mtime (%jd s, %jd ns) from source file (fd = %d) before copy",
@@ -75,16 +75,19 @@ int atomic_filecopy(int src, int dst) {
   if (flock(src, LOCK_SH) != 0) {
     LOG_DEBUG("Failed to get shared lock for source file (fd = %d): %s", src,
               strerror(errno));
-    return -1;
+    return false;
   }
   LOG_DEBUG("Requested shared lock for source file (fd = %d)", src);
 
-  if (filecopy(src, dst) != 0) {
+  if (!filecopy(src, dst)) {
     LOG_DEBUG("Failed to copy content from source file (fd = %d) to "
-              "destination file (fd = %d)",
-              src, dst);
+              "destination file (fd = %d): %s",
+              src, dst, strerror(errno));
     goto FAIL;
   }
+  LOG_DEBUG("Successfully copied content from source file (fd = %d) to "
+            "destination file (fd = %d)",
+            src, dst);
 
   struct stat sb_after;
   if (fstat(src, &sb_after) != 0) {
@@ -108,7 +111,7 @@ int atomic_filecopy(int src, int dst) {
   LOG_DEBUG("Source file (fd = %d) appears to not be modified during file copy",
             src);
 
-  ret = 0;
+  success = true;
 FAIL:
   if (flock(src, LOCK_UN) != 0) {
     LOG_DEBUG("Failed to release shared lock for source file (fd = %d): %s",
@@ -117,5 +120,5 @@ FAIL:
   }
   LOG_DEBUG("Released shared lock for source file (fd = %d)", src);
 
-  return ret;
+  return success;
 }

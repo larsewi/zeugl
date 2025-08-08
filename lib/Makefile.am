@@ -7,4 +7,5 @@ lib_LTLIBRARIES = libzeugl.la
 
 libzeugl_la_SOURCES = zeugl.c \
     logger.h logger.c \
-    utils.h utils.c
+    filecopy.h filecopy.c \
+    wackamole.h wackamole.c

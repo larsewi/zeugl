@@ -8,8 +8,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "filecopy.h"
 #include "logger.h"
-#include "utils.h"
 #include "zeugl.h"
 
 #define PRINT_USAGE(prog)                                                      \
@@ -99,12 +99,15 @@ int main(int argc, char *argv[]) {
     LOG_DEBUG("Opened input file '%s' (fd = %d)", input_fname, input_fd);
   }
 
-  if (filecopy(input_fd, output_fd) != 0) {
+  if (!filecopy(input_fd, output_fd)) {
     LOG_DEBUG("Failed to write content from input file '%s' (fd = %d) to "
               "output file '%s' (fd = %d)",
               input_fname, input_fd, output_fname, output_fd);
     goto FAIL;
   }
+  LOG_DEBUG("Successfully wrote content from input file '%s' (fd = %d) to "
+            "output file '%s' (fd = %d)",
+            input_fname, input_fd, output_fname, output_fd);
 
   exit_code = EXIT_SUCCESS;
   commit_transaction = true;
