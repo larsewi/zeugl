@@ -28,7 +28,11 @@ LT_INIT
 # Checks for libraries.
 
 # Checks for header files.
-AC_CHECK_HEADERS([fcntl.h unistd.h sys/file.h])
+AC_CHECK_HEADER_STDBOOL
+AC_CHECK_HEADERS([fcntl.h
+                  unistd.h
+                  sys/file.h
+                  stdint.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_SIZE_T
@@ -37,17 +41,13 @@ AC_TYPE_MODE_T
 
 # Checks for library functions.
 AC_FUNC_MALLOC
+AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
 AC_CHECK_FUNCS([strerror
                 stpcpy
-                strdup])
+                strdup
+                strtoul])
 
-AX_PTHREAD([
-  AC_MSG_NOTICE([POSIX threads found and enabled.])
-  LIBS="$LIBS $PTHREAD_LIBS"
-  CFLAGS="$CFLAGS $PTHREAD_CFLAGS"
-],[
-  AC_MSG_NOTICE([POSIX threads not found.])
-])
+AX_PTHREAD
 
 AC_CONFIG_TESTDIR([tests])
 AC_CONFIG_FILES([Makefile
