@@ -152,7 +152,7 @@ int zopen(const char *fname, int flags, ...) {
     }
   }
 
-  if (!(flags & Z_APPEND)) {
+  if (!(flags & (Z_APPEND | Z_TRUNCATE))) {
     if (lseek(file->fd, 0, SEEK_SET) != 0) {
       LOG_DEBUG("Failed to reposition file offset to the beginning of the file "
                 "'%s' (fd = %d): %s",
