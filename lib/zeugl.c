@@ -33,7 +33,9 @@ struct zfile {
   struct zfile *next;
 };
 
+#ifdef HAVE_PTHREAD
 static pthread_mutex_t OPEN_FILES_MUTEX = PTHREAD_MUTEX_INITIALIZER;
+#endif /* HAVE_PTHREADS */
 static struct zfile *OPEN_FILES = NULL;
 
 int zopen(const char *fname, int flags, ...) {
@@ -164,6 +166,7 @@ int zopen(const char *fname, int flags, ...) {
               file->temp, file->fd);
   }
 
+#ifdef HAVE_PTHREAD
   int ret = pthread_mutex_lock(&OPEN_FILES_MUTEX);
   if (ret != 0) {
     LOG_DEBUG("Failed to acquire mutex protecting list of open files: %s",
@@ -171,6 +174,7 @@ int zopen(const char *fname, int flags, ...) {
     goto FAIL;
   }
   LOG_DEBUG("Successfully acquired mutex protecting list of open files");
+#endif /* HAVE_PTHREAD */
 
   file->next = OPEN_FILES;
   OPEN_FILES = file;
@@ -178,6 +182,7 @@ int zopen(const char *fname, int flags, ...) {
             "(orig = '%s', temp = '%s', fd = %d, mode = %04jo)",
             file->orig, file->temp, file->fd, file->mode);
 
+#ifdef HAVE_PTHREAD
   ret = pthread_mutex_unlock(&OPEN_FILES_MUTEX);
   if (ret != 0) {
     LOG_DEBUG("Failed to release mutex protecting list of open files: %s",
@@ -185,6 +190,7 @@ int zopen(const char *fname, int flags, ...) {
     goto FAIL;
   }
   LOG_DEBUG("Successfully released mutex protecting list of open files");
+#endif /* HAVE_PTHREAD */
 
   return file->fd;
 
@@ -233,6 +239,7 @@ int zclose(int fd, bool commit) {
   }
   LOG_DEBUG("Closed file (fd = %d)", fd);
 
+#ifdef HAVE_PTHREAD
   int err = pthread_mutex_lock(&OPEN_FILES_MUTEX);
   if (err != 0) {
     LOG_DEBUG("Failed to acquire mutex protecting list of open files: %s",
@@ -240,6 +247,7 @@ int zclose(int fd, bool commit) {
     return -1;
   }
   LOG_DEBUG("Successfully acquired mutex protecting list of open files");
+#endif /* HAVE_PTHREAD */
 
   int ret = -1;
 
@@ -305,6 +313,7 @@ FAIL:
     prev->next = file->next;
   }
 
+#ifdef HAVE_PTHREAD
   err = pthread_mutex_unlock(&OPEN_FILES_MUTEX);
   if (err != 0) {
     LOG_DEBUG("Failed to release mutex protecting list of open files: %s",
@@ -312,6 +321,7 @@ FAIL:
     ret = -1;
   }
   LOG_DEBUG("Successfully released mutex protecting list of open files");
+#endif /* HAVE_PTHREAD */
 
   if (file != NULL) {
     free(file->orig);
