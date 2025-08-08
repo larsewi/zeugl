@@ -269,29 +269,28 @@ int zclose(int fd, bool commit) {
     if (chmod(file->temp, file->mode) != 0) {
       LOG_DEBUG("Failed to change file mode for file '%s' to %04jo: %s",
                 file->temp, (uintmax_t)file->mode, strerror(errno));
+      goto FAIL;
     }
     LOG_DEBUG("Changed file mode for file '%s' to %04jo", file->temp,
               (uintmax_t)file->mode);
 
-    if (wack_a_mole(file->orig, file->temp)) {
-      LOG_DEBUG("Successfully executed wack-a-mole algorithm "
-                "(orig = '%s', temp = '%s')",
-                file->orig, file->temp);
-    } else {
+    if (!wack_a_mole(file->orig, file->temp)) {
       LOG_DEBUG("Failed to execute wack-a-mole algorithm "
                 "(orig = '%s', temp = '%s'): %s",
                 file->orig, file->temp, strerror(errno));
       goto FAIL;
     }
+    LOG_DEBUG("Successfully executed wack-a-mole algorithm "
+              "(orig = '%s', temp = '%s')",
+              file->orig, file->temp);
   } else {
     LOG_DEBUG("Aborting file transaction");
-    if (unlink(file->temp) == 0) {
-      LOG_DEBUG("Deleted temporary file '%s'", file->temp);
-    } else {
+    if (unlink(file->temp) != 0) {
       LOG_DEBUG("Failed to delete temporary file '%s': %s", file->temp,
                 strerror(errno));
       goto FAIL;
     }
+    LOG_DEBUG("Deleted temporary file '%s'", file->temp);
   }
 
   ret = 0;
