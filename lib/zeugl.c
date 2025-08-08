@@ -175,7 +175,7 @@ int zopen(const char *fname, int flags, ...) {
   file->next = OPEN_FILES;
   OPEN_FILES = file;
   LOG_DEBUG("Added file to list of open files "
-            "(orig = '%s', temp = '%s', fd = %d, mode =%04jo)",
+            "(orig = '%s', temp = '%s', fd = %d, mode = %04jo)",
             file->orig, file->temp, file->fd, file->mode);
 
   ret = pthread_mutex_unlock(&OPEN_FILES_MUTEX);
