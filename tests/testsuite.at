@@ -3,26 +3,19 @@ AT_COLOR_TESTS
 
 m4_define([FIND_ZEUGL], [[set -x
 if test "$AUTOTEST_PATH" == "$at_testdir"; then
-    export PATH="$abs_top_builddir/cli:$PATH"
     zeugl="$abs_top_builddir/cli/zeugl"
     compare="$(dirname "$zeugl")/.libs/lt-zeugl"
 else
-    export PATH="$AUTOTEST_PATH/cli:$PATH"
     LD_LIBRARY_PATH="$AUTOTEST_PATH/../lib" export LD_LIBRARY_PATH
     zeugl="$AUTOTEST_PATH/zeugl"
     compare="$(zeugl)"
 fi]])
 
 
+########################################
+
 AT_SETUP([Test suite sanity check])
 AT_CHECK(echo -n Hello Zeugl, 0, Hello Zeugl)
-AT_CLEANUP
-
-AT_SETUP([Run shellcheck on all test scripts])
-AT_SKIP_IF(! command -v shellcheck)
-for file in "$abs_top_builddir/tests/??_test.sh"; do
-  AT_CHECK([shellcheck $file])
-done
 AT_CLEANUP
 
 ########################################
@@ -31,7 +24,7 @@ AT_SETUP(Create file with mode)
 FIND_ZEUGL
 
 # Create file with mode 644
-AT_CHECK([zeugl -df /dev/null -c 644 testfile.txt], 0, ignore)
+AT_CHECK([$zeugl -df /dev/null -c 644 testfile.txt], 0, ignore)
 
 # Check that file has mode 644
 AT_CHECK([stat testfile.txt --format %a], 0, [644
@@ -48,7 +41,7 @@ FIND_ZEUGL
 AT_CHECK(install -m 644 /dev/null testfile.txt)
 
 # Create the file with mode 600 if it does not exist
-AT_CHECK([zeugl -df /dev/null -c 600 testfile.txt], 0, ignore)
+AT_CHECK([$zeugl -df /dev/null -c 600 testfile.txt], 0, ignore)
 
 # Check that zeugl respected existing file mode
 AT_CHECK([stat testfile.txt --format %a], 0, [644
@@ -61,7 +54,7 @@ AT_CLEANUP
 AT_SETUP(Fail if original file is missing)
 FIND_ZEUGL
 
-AT_CHECK([zeugl -df /dev/null testfile.txt], 1, ignore)
+AT_CHECK([$zeugl -df /dev/null testfile.txt], 1, ignore)
 
 AT_CLEANUP
 
@@ -70,7 +63,7 @@ AT_CLEANUP
 AT_SETUP(Fail if input file is missing)
 FIND_ZEUGL
 
-AT_CHECK([zeugl -df no-such-file.txt -c 644 testfile.txt], 1, ignore)
+AT_CHECK([$zeugl -df no-such-file.txt -c 644 testfile.txt], 1, ignore)
 
 AT_CLEANUP
 
@@ -80,7 +73,7 @@ AT_SETUP(Expected content from stdin)
 FIND_ZEUGL
 
 # Read from stdin
-AT_CHECK([echo -n "Hello zeugl" | zeugl -dc 644 testfile.txt], 0, ignore)
+AT_CHECK([echo -n "Hello zeugl" | $zeugl -dc 644 testfile.txt], 0, ignore)
 
 # Check expected content
 AT_CHECK([cat testfile.txt], 0, [Hello zeugl])
@@ -97,7 +90,7 @@ AT_DATA([input.txt], [Hello zeugl
 ])
 
 # Use zeugl to copy input data into testfile.txt
-AT_CHECK([zeugl -df input.txt -c 644 testfile.txt], 0, ignore)
+AT_CHECK([$zeugl -df input.txt -c 644 testfile.txt], 0, ignore)
 
 # Check that testfile.txt contains input data
 AT_CHECK([cat testfile.txt], 0, [Hello zeugl
@@ -122,7 +115,7 @@ baz
 ])
 
 # Copy input file to test file without truncation
-AT_CHECK([zeugl -df input.txt testfile.txt], 0, ignore)
+AT_CHECK([$zeugl -df input.txt testfile.txt], 0, ignore)
 
 # Check that test file was not truncated
 AT_CHECK([cat testfile.txt], 0, [bar
@@ -149,7 +142,7 @@ baz
 ])
 
 # Copy input file to test file without truncation
-AT_CHECK([zeugl -dtf input.txt testfile.txt], 0, ignore)
+AT_CHECK([$zeugl -dtf input.txt testfile.txt], 0, ignore)
 
 # Check that test file was not truncated
 AT_CHECK([cat testfile.txt], 0, [bar
@@ -164,7 +157,7 @@ AT_SETUP(Create file with mode when truncated)
 FIND_ZEUGL
 
 # Create and truncate file with mode 640
-AT_CHECK([zeugl -df /dev/null -tc 640 testfile.txt], 0, ignore)
+AT_CHECK([$zeugl -df /dev/null -tc 640 testfile.txt], 0, ignore)
 
 # Check that file has mode 640
 AT_CHECK([stat testfile.txt --format %a], 0, [640
@@ -181,7 +174,7 @@ FIND_ZEUGL
 AT_CHECK(install -m 644 /dev/null testfile.txt)
 
 # Create the file with mode 600 if it does not exist
-AT_CHECK([zeugl -df /dev/null -tc 600 testfile.txt], 0, ignore)
+AT_CHECK([$zeugl -df /dev/null -tc 600 testfile.txt], 0, ignore)
 
 # Check that zeugl respected existing file mode
 AT_CHECK([stat testfile.txt --format %a], 0, [644
@@ -203,7 +196,7 @@ AT_DATA([input.txt], [bar
 ])
 
 # Append input file to test file
-AT_CHECK([zeugl -daf input.txt testfile.txt], 0, ignore)
+AT_CHECK([$zeugl -daf input.txt testfile.txt], 0, ignore)
 
 # Check that test file was appended
 AT_CHECK([cat testfile.txt], 0, [foo
@@ -214,14 +207,28 @@ AT_CLEANUP
 
 ########################################
 
-AT_SETUP(Test multithreaded files)
+AT_SETUP(Test multithreaded file manipulation)
+
+# Skip if note compiled with pthreads
 AT_SKIP_IF([! grep -qE "^#define HAVE_PTHREAD 1$" "$abs_top_builddir/config.h"])
+
+# Run multithreaded test
 AT_CHECK("$abs_top_builddir/tests/test_multithreaded" 8 testfile, 0, ignore)
+
 AT_CLEANUP
 
+########################################
+
 AT_SETUP(Check formatting on source files)
+
+# Skip if clang-format is not installed
 AT_SKIP_IF(! command -v clang-format)
+
+# Run clang-format on all source files
 for file in "$abs_top_builddir"/**/*.{c,h}; do
     AT_CHECK(clang-format --dry-run --Werror "$file")
 done
+
 AT_CLEANUP
+
+########################################

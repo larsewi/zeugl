@@ -35,7 +35,7 @@ $(TESTSUITE): $(TESTSOURCES) $(srcdir)/package.m4
 AM_CFLAGS = -Wall -Wextra -Wconversion -Wformat
 AM_CPPFLAGS = -I$(top_srcdir)/ -I$(top_srcdir)/lib/
 
-check_PROGRAMS = test_multithreaded
+check_PROGRAMS = multithreaded
 
-test_multithreaded_LDADD = $(top_srcdir)/lib/libzeugl.la
-test_multithreaded_SOURCES = test_multithreaded.c
+multithreaded_LDADD = $(top_srcdir)/lib/libzeugl.la
+multithreaded_SOURCES = multithreaded.c
