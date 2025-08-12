@@ -2,6 +2,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <pthread.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -34,7 +35,7 @@ void *start_routine(void *arg) {
   printf("[thread %d] Opened source file '%s' (fd = %d) in read-only mode\n",
          thread_data->id, DEV_RANDOM, src);
 
-  int dst = zopen(thread_data->filename, Z_CREATE, (mode_t)0644);
+  int dst = zopen(thread_data->filename, Z_CREATE | Z_APPEND, (mode_t)0644);
   if (dst == -1) {
     fprintf(stderr, "[thread %d] Failed to open source file '%s': %s\n",
             thread_data->id, thread_data->filename, strerror(errno));
@@ -42,6 +43,35 @@ void *start_routine(void *arg) {
   }
   printf("[thread %d] Atomically opened source file '%s' (fd = %d)\n",
          thread_data->id, thread_data->filename, dst);
+
+  off_t offset = lseek(dst, 0, SEEK_CUR);
+  if (offset < 0) {
+    fprintf(stderr,
+            "[thread %d] Failed to get file offset from destination file '%s' "
+            "(fd = %d) before copy",
+            thread_data->id, thread_data->filename, dst);
+    return NULL;
+  }
+
+  if (offset != 0 && offset != FILESIZE) {
+    fprintf(stderr,
+            "[thread %d] Bad file offset %" PRId64
+            " from destination file '%s' (fd = %d) before copy",
+            thread_data->id, offset, thread_data->filename, dst);
+    return NULL;
+  }
+  printf("[thread %d] Good file offset %" PRId64
+         " on zopened destination file '%s' (fd = %d) before copy",
+         thread_data->id, offset, thread_data->filename, dst);
+
+  offset = lseek(dst, 0, SEEK_SET);
+  if (offset < 0) {
+    fprintf(stderr,
+            "[thread %d] Failed to seek to start of destination file '%s' (fd "
+            "= %d) before copy",
+            thread_data->id, thread_data->filename, dst);
+    return NULL;
+  }
 
   size_t tot_written = 0;
   char buffer[BUFSIZ];
@@ -106,6 +136,33 @@ void *start_routine(void *arg) {
   }
   printf("[thread %d] Closed source file '%s' (fd = %d)\n", thread_data->id,
          DEV_RANDOM, dst);
+
+  int fd = open(thread_data->filename, O_RDONLY);
+  if (fd < 0) {
+    fprintf(stderr, "[thread %d] Failed to open file '%s' after commit",
+            thread_data->id, thread_data->filename);
+    return NULL;
+  }
+
+  offset = lseek(dst, 0, SEEK_CUR);
+  if (offset < 0) {
+    fprintf(stderr,
+            "[thread %d] Failed to get file offset from file '%s' (fd = %d) "
+            "after commit",
+            thread_data->id, thread_data->filename, fd);
+    return NULL;
+  }
+
+  if (offset != FILESIZE) {
+    fprintf(stderr,
+            "[thread %d] Bad file offset %" PRId64
+            " from file '%s' (fd = %d) after commit",
+            thread_data->id, offset, thread_data->filename, fd);
+    return NULL;
+  }
+  printf("[thread %d] Good file offset %" PRId64
+         " from file '%s' (fd = %d) after commit",
+         thread_data->id, offset, thread_data->filename, fd);
 
   thread_data->success = true;
   return NULL;
