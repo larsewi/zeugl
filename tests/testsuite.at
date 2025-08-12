@@ -34,7 +34,8 @@ FIND_ZEUGL
 AT_CHECK([zeugl -d -f /dev/null -c 644 testfile.txt], 0, ignore)
 
 # Check that file has mode 644
-AT_CHECK([[stat testfile.txt --format %a | tr -d [:space:]]], 0, 644)
+AT_CHECK([stat testfile.txt --format %a], 0, [644
+])
 
 AT_CLEANUP
 
@@ -50,7 +51,8 @@ AT_CHECK(install -m 644 /dev/null testfile.txt)
 AT_CHECK([zeugl -d -f /dev/null -c 600 testfile.txt], 0, ignore)
 
 # Check that zeugl respected existing file mode
-AT_CHECK([[stat testfile.txt --format %a | tr -d [:space:]]], 0, 644)
+AT_CHECK([stat testfile.txt --format %a], 0, [644
+])
 
 AT_CLEANUP
 
