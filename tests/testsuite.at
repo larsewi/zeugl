@@ -31,7 +31,7 @@ AT_SETUP(Create file with mode)
 FIND_ZEUGL
 
 # Create file with mode 644
-AT_CHECK([zeugl -d -f /dev/null -c 644 testfile.txt], 0, ignore)
+AT_CHECK([zeugl -df /dev/null -c 644 testfile.txt], 0, ignore)
 
 # Check that file has mode 644
 AT_CHECK([stat testfile.txt --format %a], 0, [644
@@ -48,7 +48,7 @@ FIND_ZEUGL
 AT_CHECK(install -m 644 /dev/null testfile.txt)
 
 # Create the file with mode 600 if it does not exist
-AT_CHECK([zeugl -d -f /dev/null -c 600 testfile.txt], 0, ignore)
+AT_CHECK([zeugl -df /dev/null -c 600 testfile.txt], 0, ignore)
 
 # Check that zeugl respected existing file mode
 AT_CHECK([stat testfile.txt --format %a], 0, [644
@@ -70,7 +70,7 @@ AT_CLEANUP
 AT_SETUP(Fail if input file is missing)
 FIND_ZEUGL
 
-AT_CHECK([zeugl -d -f no-such-file.txt -c 644 testfile.txt], 1, ignore)
+AT_CHECK([zeugl -df no-such-file.txt -c 644 testfile.txt], 1, ignore)
 
 AT_CLEANUP
 
@@ -175,9 +175,21 @@ AT_CLEANUP
 ########################################
 
 AT_SETUP(Existing file mode is kept when truncated)
-FIND_ZEUGL()
-AT_CHECK("$abs_top_builddir/tests/12_test.sh", 0, ignore)
+FIND_ZEUGL
+
+# Create an empty file with mode 644
+AT_CHECK(install -m 644 /dev/null testfile.txt)
+
+# Create the file with mode 600 if it does not exist
+AT_CHECK([zeugl -df /dev/null -tc 600 testfile.txt], 0, ignore)
+
+# Check that zeugl respected existing file mode
+AT_CHECK([stat testfile.txt --format %a], 0, [644
+])
+
 AT_CLEANUP
+
+########################################
 
 AT_SETUP(File is appended when specified)
 FIND_ZEUGL()
