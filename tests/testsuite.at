@@ -25,18 +25,36 @@ for file in "$abs_top_builddir/tests/??_test.sh"; do
 done
 AT_CLEANUP
 
+########################################
+
 AT_SETUP(Create file with mode)
 FIND_ZEUGL
+
 # Create file with mode 644
 AT_CHECK([echo "Hello zeugl" | zeugl -dc 644 testfile.txt], 0, ignore)
+
 # Check that file has mode 644
 AT_CHECK([stat testfile.txt --format %a | tr -d "\n"], 0, 644)
+
 AT_CLEANUP
 
+########################################
+
 AT_SETUP(Existing file mode is kept)
-FIND_ZEUGL()
-AT_CHECK("$abs_top_builddir/tests/04_test.sh", 0, ignore)
+FIND_ZEUGL
+
+# Create an empty file with mode 644
+AT_CHECK(install -m 644 /dev/null testfile.txt)
+
+# Create the file with mode 600 if it does not exist
+AT_CHECK([echo "Hello zeugl" | zeugl -dc 600 testfile.txt], 0, ignore)
+
+# Check that zeugl respected existing file mode
+AT_CHECK([stat testfile.txt --format %a | tr -d "\n"], 0, 644)
+
 AT_CLEANUP
+
+########################################
 
 AT_SETUP(Fail if original file is missing)
 FIND_ZEUGL()
