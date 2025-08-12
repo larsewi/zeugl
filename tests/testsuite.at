@@ -161,9 +161,18 @@ AT_CLEANUP
 ########################################
 
 AT_SETUP(Create file with mode when truncated)
-FIND_ZEUGL()
-AT_CHECK("$abs_top_builddir/tests/11_test.sh", 0, ignore)
+FIND_ZEUGL
+
+# Create and truncate file with mode 640
+AT_CHECK([zeugl -df /dev/null -tc 640 testfile.txt], 0, ignore)
+
+# Check that file has mode 640
+AT_CHECK([stat testfile.txt --format %a], 0, [640
+])
+
 AT_CLEANUP
+
+########################################
 
 AT_SETUP(Existing file mode is kept when truncated)
 FIND_ZEUGL()
