@@ -88,9 +88,22 @@ AT_CLEANUP
 ########################################
 
 AT_SETUP(Expected content from input file)
-FIND_ZEUGL()
-AT_CHECK("$abs_top_builddir/tests/08_test.sh", 0, ignore)
+FIND_ZEUGL
+
+# Create input file
+AT_DATA([input.txt], [Hello zeugl
+])
+
+# Use zeugl to copy input data into testfile.txt
+AT_CHECK([zeugl -df input.txt -c 644 testfile.txt], 0, ignore)
+
+# Check that testfile.txt contains input data
+AT_CHECK([cat testfile.txt], 0, [Hello zeugl
+])
+
 AT_CLEANUP
+
+########################################
 
 AT_SETUP(File is not truncated by default)
 FIND_ZEUGL()
