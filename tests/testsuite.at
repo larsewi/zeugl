@@ -34,7 +34,7 @@ FIND_ZEUGL
 AT_CHECK([echo "Hello zeugl" | zeugl -dc 644 testfile.txt], 0, ignore)
 
 # Check that file has mode 644
-AT_CHECK([stat testfile.txt --format %a | tr -d "\n"], 0, 644)
+AT_CHECK([[stat testfile.txt --format %a | tr -d [:space:]]], 0, 644)
 
 AT_CLEANUP
 
@@ -50,16 +50,20 @@ AT_CHECK(install -m 644 /dev/null testfile.txt)
 AT_CHECK([echo "Hello zeugl" | zeugl -dc 600 testfile.txt], 0, ignore)
 
 # Check that zeugl respected existing file mode
-AT_CHECK([stat testfile.txt --format %a | tr -d "\n"], 0, 644)
+AT_CHECK([[stat testfile.txt --format %a | tr -d [:space:]]], 0, 644)
 
 AT_CLEANUP
 
 ########################################
 
 AT_SETUP(Fail if original file is missing)
-FIND_ZEUGL()
-AT_CHECK("$abs_top_builddir/tests/05_test.sh", 1, ignore)
+FIND_ZEUGL
+
+AT_CHECK([echo "Hello zeugl" | zeugl -d testfile.txt], 1, ignore)
+
 AT_CLEANUP
+
+########################################
 
 AT_SETUP(Fail if input file is missing)
 FIND_ZEUGL()
