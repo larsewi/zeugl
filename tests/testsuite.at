@@ -66,9 +66,13 @@ AT_CLEANUP
 ########################################
 
 AT_SETUP(Fail if input file is missing)
-FIND_ZEUGL()
-AT_CHECK("$abs_top_builddir/tests/06_test.sh", 1, ignore)
+FIND_ZEUGL
+
+AT_CHECK([zeugl -d -f no-such-file.txt -c 644 testfile.txt], 1, ignore)
+
 AT_CLEANUP
+
+########################################
 
 AT_SETUP(Expected content from stdin)
 FIND_ZEUGL()
