@@ -135,9 +135,30 @@ AT_CLEANUP
 ########################################
 
 AT_SETUP(File is truncated when specified)
-FIND_ZEUGL()
-AT_CHECK("$abs_top_builddir/tests/10_test.sh", 0, ignore)
+FIND_ZEUGL
+
+# Create input file
+AT_DATA([input.txt], [bar
+foo 
+])
+
+# Create test file
+AT_DATA([testfile.txt], [foo
+bar
+baz
+])
+
+# Copy input file to output file without truncation
+AT_CHECK([zeugl -dtf input.txt testfile.txt], 0, ignore)
+
+# Check that output file was not truncated
+AT_CHECK([cat testfile.txt], 0, [bar
+foo
+])
+
 AT_CLEANUP
+
+########################################
 
 AT_SETUP(Create file with mode when truncated)
 FIND_ZEUGL()
