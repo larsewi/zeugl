@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/file.h>
 #include <unistd.h>
 
 #include "zeugl.h"
@@ -48,28 +49,29 @@ void *start_routine(void *arg) {
   if (offset < 0) {
     fprintf(stderr,
             "[thread %d] Failed to get file offset from destination file '%s' "
-            "(fd = %d) before copy",
-            thread_data->id, thread_data->filename, dst);
+            "(fd = %d) before copy: %s\n",
+            thread_data->id, thread_data->filename, dst, strerror(errno));
     return NULL;
   }
 
   if (offset != 0 && offset != FILESIZE) {
     fprintf(stderr,
             "[thread %d] Bad file offset %" PRId64
-            " from destination file '%s' (fd = %d) before copy",
-            thread_data->id, offset, thread_data->filename, dst);
+            " from destination file '%s' (fd = %d) before copy: %s\n",
+            thread_data->id, offset, thread_data->filename, dst,
+            strerror(errno));
     return NULL;
   }
   printf("[thread %d] Good file offset %" PRId64
-         " on zopened destination file '%s' (fd = %d) before copy",
+         " on zopened destination file '%s' (fd = %d) before copy\n",
          thread_data->id, offset, thread_data->filename, dst);
 
   offset = lseek(dst, 0, SEEK_SET);
   if (offset < 0) {
     fprintf(stderr,
             "[thread %d] Failed to seek to start of destination file '%s' (fd "
-            "= %d) before copy",
-            thread_data->id, thread_data->filename, dst);
+            "= %d) before copy: %s\n",
+            thread_data->id, thread_data->filename, dst, strerror(errno));
     return NULL;
   }
 
@@ -137,33 +139,6 @@ void *start_routine(void *arg) {
   printf("[thread %d] Closed source file '%s' (fd = %d)\n", thread_data->id,
          DEV_RANDOM, dst);
 
-  int fd = open(thread_data->filename, O_RDONLY);
-  if (fd < 0) {
-    fprintf(stderr, "[thread %d] Failed to open file '%s' after commit",
-            thread_data->id, thread_data->filename);
-    return NULL;
-  }
-
-  offset = lseek(dst, 0, SEEK_CUR);
-  if (offset < 0) {
-    fprintf(stderr,
-            "[thread %d] Failed to get file offset from file '%s' (fd = %d) "
-            "after commit",
-            thread_data->id, thread_data->filename, fd);
-    return NULL;
-  }
-
-  if (offset != FILESIZE) {
-    fprintf(stderr,
-            "[thread %d] Bad file offset %" PRId64
-            " from file '%s' (fd = %d) after commit",
-            thread_data->id, offset, thread_data->filename, fd);
-    return NULL;
-  }
-  printf("[thread %d] Good file offset %" PRId64
-         " from file '%s' (fd = %d) after commit",
-         thread_data->id, offset, thread_data->filename, fd);
-
   thread_data->success = true;
   return NULL;
 }
@@ -185,12 +160,14 @@ int main(int argc, char *argv[]) {
     return EXIT_FAILURE;
   }
 
+  const char *fname = argv[2];
+
   pthread_t threads[num_threads];
   struct thread_data thread_data[num_threads];
 
   for (int i = 0; i < num_threads; i++) {
     thread_data[i].id = i;
-    thread_data[i].filename = argv[2];
+    thread_data[i].filename = fname;
     thread_data[i].success = false;
 
     int ret = pthread_create(&threads[i], NULL, start_routine, &thread_data[i]);
@@ -217,6 +194,35 @@ int main(int argc, char *argv[]) {
       return EXIT_FAILURE;
     }
   }
+
+  int fd = open(argv[2], O_RDONLY);
+  if (fd < 0) {
+    fprintf(stderr, "[thread m] Failed to open file '%s': %s", fname,
+            strerror(errno));
+    return EXIT_FAILURE;
+  }
+
+  off_t offset = lseek(fd, 0, SEEK_END);
+  if (offset < 0) {
+    fprintf(stderr,
+            "[thread m] Failed to get file offset from file '%s' (fd = %d) "
+            "before copy: %s\n",
+            fname, fd, strerror(errno));
+    return EXIT_FAILURE;
+  }
+
+  if (offset != FILESIZE) {
+    fprintf(stderr,
+            "[thread m] Bad file offset %" PRId64
+            " from file '%s' (fd = %d): %s\n",
+            offset, fname, fd, strerror(errno));
+    return EXIT_FAILURE;
+  }
+  printf("[thread m] Good file offset %" PRId64
+         " on destination file '%s' (fd = %d) before copy\n",
+         offset, fname, fd);
+
+  close(fd);
 
   return EXIT_SUCCESS;
 }
