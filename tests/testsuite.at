@@ -75,9 +75,17 @@ AT_CLEANUP
 ########################################
 
 AT_SETUP(Expected content from stdin)
-FIND_ZEUGL()
-AT_CHECK("$abs_top_builddir/tests/07_test.sh", 0, ignore)
+FIND_ZEUGL
+
+# Read from stdin
+AT_CHECK([echo -n "Hello zeugl" | zeugl -dc 644 testfile.txt], 0, ignore)
+
+# Check expected content
+AT_CHECK([cat testfile.txt], 0, [Hello zeugl])
+
 AT_CLEANUP
+
+########################################
 
 AT_SETUP(Expected content from input file)
 FIND_ZEUGL()
