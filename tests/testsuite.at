@@ -26,8 +26,11 @@ done
 AT_CLEANUP
 
 AT_SETUP(Create file with mode)
-FIND_ZEUGL()
-AT_CHECK("$abs_top_builddir/tests/03_test.sh", 0, ignore)
+FIND_ZEUGL
+# Create file with mode 644
+AT_CHECK([echo "Hello zeugl" | zeugl -dc 644 testfile.txt], 0, ignore)
+# Check that file has mode 644
+AT_CHECK([stat testfile.txt --format %a | tr -d "\n"], 0, 644)
 AT_CLEANUP
 
 AT_SETUP(Existing file mode is kept)
