@@ -219,7 +219,18 @@ AT_CLEANUP
 
 ########################################
 
-AT_SETUP([Check formatting on source files])
+AT_SETUP([Test multiprocess file manipulation])
+
+chmod +x "$abs_top_builddir/tests/multiprocess.sh"
+
+# Run multiprocess test
+AT_CHECK(["$abs_top_builddir/tests/multiprocess.sh"], [0], [ignore])
+
+AT_CLEANUP
+
+########################################
+
+AT_SETUP([Check formatting on C code])
 
 # Skip if clang-format is not installed
 AT_SKIP_IF([! command -v clang-format])
@@ -227,6 +238,18 @@ AT_SKIP_IF([! command -v clang-format])
 # Run clang-format on all source files
 for file in "$abs_top_builddir"/**/*.{c,h}; do
     AT_CHECK([clang-format --dry-run --Werror "$file"])
+done
+
+AT_CLEANUP
+
+########################################
+
+AT_SETUP([Check formatting on shell scripts])
+
+AT_SKIP_IF([! command -v shfmt])
+
+for file in "$abs_top_builddir"/**/*.sh; do
+    AT_CHECK([shfmt --diff "$file"])
 done
 
 AT_CLEANUP
