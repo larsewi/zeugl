@@ -18,7 +18,8 @@
  *                  zclose().
  *
  * @param flags     Zero or more file creation flags and file status  flags  can
- *                  be bitwise ORed in flags.
+ *                  be bitwise ORed in flags.  Please  note  that  the  file  is
+ *                  always opened in read/write.
  *
  *                  Z_CREATE
  *                      if filename does not exist, create it as a regular file.
@@ -38,18 +39,29 @@
  *                  Z_CREATE is specified. Failing to do so will cause arbitrary
  *                  bytes from the stack to be applied as the file mode.
  *
- * @return          Return the file descriptor (a nonnegative  integer)  of  the
- *                  temporary file. On error, -1 is returned and errno is set to
- *                  indicate the error.
+ * @return          Returns the file descriptor (a nonnegative integer)  of  the
+ *                  temporary file. On error, a negative number is returned  and
+ *                  errno is set to indicate the error.
  */
 int zopen(const char *filename, int flags, ... /* mode_t mode */);
 
 /**
- * @brief
+ * @brief           Commits or aborts an atomic file transaction. On  abort  the
+ *                  temporary copy  of  the  file  is  removed.  On  commit  the
+ *                  original file is atomically replaced by the temporary  file.
+ *                  If multiple processes commit a file transaction simultaneou-
+ *                  sly, this function guarantees that original file is replaced
+ *                  once, by one of the temporary files. Any  of  the  remaining
+ *                  temporary files are deleted.
  *
- * @param fd
+ * @param fd        The file descriptor of a file opened with zopen() or -1  for
+ *                  no operation.
  *
- * @param commit
+ * @param commit    If  true,  the  transaction  is  committed.  Otherwise,  the
+ *                  transaction is aborted.
+ *
+ * @return          On success, 0 is returned. On error, a negative  number  is
+ *                  returned and errno is set to indicate the error.
  */
 int zclose(int fd, bool commit);
 
