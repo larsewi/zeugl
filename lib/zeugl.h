@@ -42,6 +42,11 @@
  * @return          Returns the file descriptor (a nonnegative integer)  of  the
  *                  temporary file. On error, a negative number is returned  and
  *                  errno is set to indicate the error.
+ *
+ * @note            There are some measures to try to detect if another  process
+ *                  is writing to the original file while  zopen()  creates  the
+ *                  temporary copy. However, this cannot  be  guaranteed  unless
+ *                  the process respects file locks.
  */
 int zopen(const char *filename, int flags, ... /* mode_t mode */);
 
