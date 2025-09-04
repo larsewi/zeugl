@@ -16,7 +16,7 @@
   fprintf(stderr,                                                              \
           "Usage: %s [-f INPUT_FILE] [-c MODE] [-a] [-t] [-d] [-v] [-h] "      \
           "OUTPUT_FILE\n",                                                     \
-          prog);
+          prog)
 
 int main(int argc, char *argv[]) {
   const char *input_fname = "-";
