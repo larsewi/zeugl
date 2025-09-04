@@ -152,7 +152,7 @@ bool wack_a_mole(const char *orig, const char *temp) {
   }
 
   success = true;
-FAIL:
+FAIL:;
 
   int save_errno = errno;
   free(mole);
