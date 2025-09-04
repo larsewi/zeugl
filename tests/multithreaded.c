@@ -1,6 +1,5 @@
 #include "config.h"
 
-#include <asm-generic/errno-base.h>
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
