@@ -31,5 +31,6 @@ void LoggerLogMessage(const char *file, int line, const char *format, ...) {
 
   va_end(ap);
 
-  fprintf(stdout, "[%s:%d] Debug: %s\n", file, line, msg);
+  ret = printf("[%s:%d] Debug: %s\n", file, line, msg);
+  assert(ret >= 0);
 }
