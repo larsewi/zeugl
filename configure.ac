@@ -25,6 +25,19 @@ AM_PROG_AR
 
 LT_INIT
 
+# Check for debug option.
+AC_ARG_ENABLE([debug],
+              AS_HELP_STRING([--enable-debug], [enable debugging [default=no]]),
+              [debug="$enableval"], [debug=no])
+AC_MSG_CHECKING([for debug option])
+if test "$debug" = yes; then
+    AC_MSG_RESULT(yes)
+    CFLAGS="$CFLAGS -g -O0 -Werror -Wall -Wextra -Wconversion -Wformat"
+else
+    AC_MSG_RESULT(no)
+fi
+AM_CONDITIONAL([NDEBUG], [test "$debug" = "no"])
+
 # Checks for libraries.
 AX_PTHREAD
 
