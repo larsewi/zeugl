@@ -43,7 +43,9 @@
  *                      the original file to the temporary copy  if  it  detects
  *                      that another process is writing  to  the  original  file
  *                      simultaneously. In all of these cases, the function will
- *                      return error and errno will be set to EBUSY.
+ *                      return error and errno will be set to EBUSY. Please note
+ *                      that this flag does not guarantee that the function call
+ *                      does not block for any other reasons.
  *
  * @param mode      The mode argument specifies the file mode bits to be applied
  *                  when a new file is created. If Z_CREATE is not specified  in
