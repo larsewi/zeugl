@@ -6,6 +6,7 @@
 #define Z_CREATE 1 << 0
 #define Z_APPEND 1 << 1
 #define Z_TRUNCATE 1 << 2
+#define Z_NOBLOCK 1 << 2
 
 /**
  * @brief           Begins an  atomic  file  transaction  by  returning  a  file
@@ -31,6 +32,9 @@
  *                  Z_TRUNCATE
  *                      the content of the original is  never  copied  into  the
  *                      temporary copy.
+ *
+ *                  Z_NOBLOCK
+ *                      the file does not block on advisory locking.
  *
  * @param mode      The mode argument specifies the file mode bits to be applied
  *                  when a new file is created. If Z_CREATE is not specified  in
