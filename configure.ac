@@ -2,14 +2,16 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.71])
-AC_INIT([zeugl],[0.0.1],[https://github.com/larsewi/zeugl/issues],[zeugl],[https://github.com/larsewi/zeugl])
+AC_INIT([zeugl], [0.0.1],
+        [https://github.com/larsewi/zeugl/issues],
+        [zeugl], [https://github.com/larsewi/zeugl])
 AC_CONFIG_SRCDIR([lib/zeugl.h])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 
 AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 
-# Load macros
+# Load macros.
 m4_include([m4/ax_pthread.m4])
 
 # Checks for programs.
