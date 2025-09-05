@@ -27,7 +27,9 @@
  *
  *                  Z_APPEND
  *                      the file offset is positioned at the  end  of  the  file
- *                      instead of at the start of the file.
+ *                      instead of at the start of the file. However,  the  file
+ *                      offset is not repositioned to the end of the file before
+ *                      each write like O_APPEND in open(2).
  *
  *                  Z_TRUNCATE
  *                      the content of the original is  never  copied  into  the
