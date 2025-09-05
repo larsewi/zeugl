@@ -1,4 +1,3 @@
-AM_CFLAGS = -Wall -Wextra -Wconversion -Wformat
 AM_CPPFLAGS = -include $(top_builddir)/config.h
 
 include_HEADERS = zeugl.h
