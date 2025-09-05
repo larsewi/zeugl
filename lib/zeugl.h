@@ -34,7 +34,12 @@
  *                      temporary copy.
  *
  *                  Z_NOBLOCK
- *                      the file does not block on advisory locking.
+ *                      the file  does  not  block  on  advisory  locking  (file
+ *                      locks). Futhermore, the function will not retry  copying
+ *                      the original file to the temporary copy  if  it  detects
+ *                      that another process is writing  to  the  original  file
+ *                      simultaneously. In all of these cases, the function will
+ *                      return error and errno will be set to EBUSY.
  *
  * @param mode      The mode argument specifies the file mode bits to be applied
  *                  when a new file is created. If Z_CREATE is not specified  in
@@ -50,7 +55,11 @@
  * @note            There are some measures to try to detect if another  process
  *                  is writing to the original file while  zopen()  creates  the
  *                  temporary copy. However, this cannot  be  guaranteed  unless
- *                  the process respects file locks.
+ *                  the other processes modifying to the original file  respects
+ *                  advisory locks (file locks). Upon detecting other  processes
+ *                  writing to the original file while copying it, zopen()  will
+ *                  continuously retry copying unless the Z_NOBLOCK bit  is  set
+ *                  in the flag argument.
  */
 int zopen(const char *filename, int flags, ... /* mode_t mode */);
 

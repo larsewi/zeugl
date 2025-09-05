@@ -58,35 +58,43 @@ bool filecopy(int src, int dst) {
   return true;
 }
 
-bool safe_filecopy(int src, int dst) {
-  struct stat sb_before;
-  if (fstat(src, &sb_before) != 0) {
-    LOG_DEBUG("Failed to retrieve mtime from source file (fd = %d): %s", src,
-              strerror(errno));
-    return false;
-  }
+bool safe_filecopy(int src, int dst, bool no_block) {
+  struct stat sb_before, sb_after;
 
-  if (!filecopy(src, dst)) {
-    return false;
-  }
+  bool done = false;
+  do {
+    if (fstat(src, &sb_before) != 0) {
+      LOG_DEBUG("Failed to retrieve mtime from source file (fd = %d): %s", src,
+                strerror(errno));
+      return false;
+    }
 
-  struct stat sb_after;
-  if (fstat(src, &sb_after) != 0) {
-    LOG_DEBUG("Failed to retrieve mtime from source file (fd = %d): %s", src,
-              strerror(errno));
-    return false;
-  }
+    if (!filecopy(src, dst)) {
+      return false;
+    }
 
-  if ((sb_before.st_mtim.tv_sec != sb_after.st_mtim.tv_sec) ||
-      (sb_before.st_mtim.tv_nsec != sb_after.st_mtim.tv_nsec)) {
-    LOG_DEBUG("Source file (fd = %d) was modified while copying contents to "
-              "destination file (%d)",
-              src, dst);
-    errno = EBUSY;
-    return false;
-  }
-  LOG_DEBUG("Source file (fd = %d) appears to not be modified during file copy",
-            src);
+    if (fstat(src, &sb_after) != 0) {
+      LOG_DEBUG("Failed to retrieve mtime from source file (fd = %d): %s", src,
+                strerror(errno));
+      return false;
+    }
+
+    if ((sb_before.st_mtim.tv_sec == sb_after.st_mtim.tv_sec) ||
+        (sb_before.st_mtim.tv_nsec == sb_after.st_mtim.tv_nsec)) {
+      LOG_DEBUG(
+          "Source file (fd = %d) appears to not be modified during file copy",
+          src);
+      done = true;
+    } else {
+      LOG_DEBUG("Source file (fd = %d) was modified while copying contents to "
+                "destination file (%d)",
+                src, dst);
+      if (no_block) {
+        errno = EBUSY;
+        return false;
+      }
+    }
+  } while (!done);
 
   return true;
 }
@@ -106,7 +114,7 @@ bool atomic_filecopy(int src, int dst, bool no_block) {
   }
   LOG_DEBUG("Requested shared lock for source file (fd = %d)", src);
 
-  if (!safe_filecopy(src, dst)) {
+  if (!safe_filecopy(src, dst, no_block)) {
     LOG_DEBUG("Failed to copy content from source file (fd = %d) to "
               "destination file (fd = %d): %s",
               src, dst, strerror(errno));

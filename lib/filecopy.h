@@ -5,7 +5,7 @@
 
 bool filecopy(int src, int dst);
 
-bool safe_filecopy(int src, int dst);
+bool safe_filecopy(int src, int dst, bool no_block);
 
 bool atomic_filecopy(int src, int dst, bool no_block);
 
