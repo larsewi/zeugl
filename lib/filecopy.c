@@ -116,7 +116,7 @@ FAIL:
   if (flock(src, LOCK_UN) != 0) {
     LOG_DEBUG("Failed to release shared lock for source file (fd = %d): %s",
               src, strerror(errno));
-    return -1;
+    return false;
   }
   LOG_DEBUG("Released shared lock for source file (fd = %d)", src);
 

@@ -238,7 +238,7 @@ int main(int argc, char *argv[]) {
     thread_data[i].id = i + 1;
     thread_data[i].success = false;
 
-    int ret = pthread_create(&threads[i], NULL, start_routine, &thread_data[i]);
+    ret = pthread_create(&threads[i], NULL, start_routine, &thread_data[i]);
     if (ret != 0) {
       LOG_DEBUG(0, "Failed to create thread: %s", strerror(ret));
       return EXIT_FAILURE;
@@ -248,7 +248,7 @@ int main(int argc, char *argv[]) {
 
   for (int i = 0; i < num_threads; i++) {
     void *retval;
-    int ret = pthread_join(threads[i], &retval);
+    ret = pthread_join(threads[i], &retval);
     if (ret != 0) {
       LOG_DEBUG(0, "Failed to join thread %d: %s", thread_data[i].id,
                 strerror(ret));

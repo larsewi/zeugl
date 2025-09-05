@@ -221,6 +221,7 @@ AT_CLEANUP
 
 AT_SETUP([Test multiprocess file manipulation])
 
+# Make sure shell script is executable
 chmod +x "$abs_top_builddir/tests/multiprocess.sh"
 
 # Run multiprocess test
@@ -244,10 +245,26 @@ AT_CLEANUP
 
 ########################################
 
+AT_SETUP([Static check C code])
+
+# Skip if cppcheck is not installed
+AT_SKIP_IF([! command -v cppcheck])
+
+AT_CHECK([cppcheck --force --error-exitcode=1 --check-level=exhaustive \
+--enable=all --disable=missingInclude --include="$abs_top_builddir"/config.h \
+-I "$abs_top_builddir"/ -I "$abs_top_builddir"/lib/ "$abs_top_builddir"],
+[0], [ignore], [ignore])
+
+AT_CLEANUP
+
+########################################
+
 AT_SETUP([Check formatting on shell scripts])
 
+# Skip if shfmt is not installed
 AT_SKIP_IF([! command -v shfmt])
 
+# Run shfmt on all shell files
 for file in "$abs_top_builddir"/**/*.sh; do
     AT_CHECK([shfmt --diff "$file"])
 done
@@ -258,8 +275,10 @@ AT_CLEANUP
 
 AT_SETUP([Static check shell scripts])
 
+# Skip if shellcheck is not installed
 AT_SKIP_IF([! command -v shellcheck])
 
+# Run shellcheck on all shell files
 for file in "$abs_top_builddir"/**/*.sh; do
     AT_CHECK([shellcheck "$file"])
 done

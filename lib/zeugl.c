@@ -254,10 +254,7 @@ int zclose(int fd, bool commit) {
   LOG_DEBUG("Looking for file with matching file descriptor %d...", fd);
   struct zfile *prev = NULL, *file = OPEN_FILES;
   while ((file != NULL) && (file->fd != fd)) {
-    if (file != NULL) {
-      /* We need this to merge left and right of list after removal */
-      prev = file;
-    }
+    prev = file;
     file = file->next;
   }
 
