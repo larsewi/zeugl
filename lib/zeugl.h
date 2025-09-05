@@ -6,6 +6,7 @@
 #define Z_CREATE 1 << 0
 #define Z_APPEND 1 << 1
 #define Z_TRUNCATE 1 << 2
+#define Z_NOBLOCK 1 << 2
 
 /**
  * @brief           Begins an  atomic  file  transaction  by  returning  a  file
@@ -23,14 +24,28 @@
  *
  *                  Z_CREATE
  *                      if filename does not exist, create it as a regular file.
+ *                      Note that this flag requires you  to  specify  the  mode
+ *                      argument.
  *
  *                  Z_APPEND
  *                      the file offset is positioned at the  end  of  the  file
- *                      instead of at the start of the file.
+ *                      instead of at the start of the file. However,  the  file
+ *                      offset is not repositioned to the end of the file before
+ *                      each write like O_APPEND in open(2).
  *
  *                  Z_TRUNCATE
  *                      the content of the original is  never  copied  into  the
  *                      temporary copy.
+ *
+ *                  Z_NOBLOCK
+ *                      the file  does  not  block  on  advisory  locking  (file
+ *                      locks). Futhermore, the function will not retry  copying
+ *                      the original file to the temporary copy  if  it  detects
+ *                      that another process is writing  to  the  original  file
+ *                      simultaneously. In all of these cases, the function will
+ *                      return error and errno will be set to EBUSY. Please note
+ *                      that this flag does not guarantee that the function call
+ *                      does not block for any other reasons.
  *
  * @param mode      The mode argument specifies the file mode bits to be applied
  *                  when a new file is created. If Z_CREATE is not specified  in
@@ -46,7 +61,11 @@
  * @note            There are some measures to try to detect if another  process
  *                  is writing to the original file while  zopen()  creates  the
  *                  temporary copy. However, this cannot  be  guaranteed  unless
- *                  the process respects file locks.
+ *                  the other processes modifying to the original file  respects
+ *                  advisory locks (file locks). Upon detecting other  processes
+ *                  writing to the original file while copying it, zopen()  will
+ *                  continuously retry copying unless the Z_NOBLOCK bit  is  set
+ *                  in the flag argument.
  */
 int zopen(const char *filename, int flags, ... /* mode_t mode */);
 
