@@ -91,10 +91,15 @@ bool safe_filecopy(int src, int dst) {
   return true;
 }
 
-bool atomic_filecopy(int src, int dst) {
+bool atomic_filecopy(int src, int dst, bool no_block) {
   bool success = false;
 
-  if (flock(src, LOCK_SH) != 0) {
+  int lock = LOCK_SH;
+  if (no_block) {
+    lock |= LOCK_NB;
+  }
+
+  if (flock(src, lock) != 0) {
     LOG_DEBUG("Failed to get shared lock for source file (fd = %d): %s", src,
               strerror(errno));
     return false;

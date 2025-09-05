@@ -129,7 +129,7 @@ int zopen(const char *fname, int flags, ...) {
       LOG_DEBUG("Using mode %04jo from original file '%s' (fd = %d)",
                 (uintmax_t)file->mode, file->orig, fd);
 
-      if (!atomic_filecopy(fd, file->fd)) {
+      if (!atomic_filecopy(fd, file->fd, false)) {
         LOG_DEBUG("Failed to copy content from original file '%s' (fd = %d) to "
                   "temporary file '%s' (fd = %d): %s",
                   file->orig, fd, file->temp, file->fd, strerror(errno));
