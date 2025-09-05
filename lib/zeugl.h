@@ -39,7 +39,7 @@
  *
  *                  Z_NOBLOCK
  *                      the file  does  not  block  on  advisory  locking  (file
- *                      locks). Futhermore, the function will not retry  copying
+ *                      locks). Furthermore, the function will not retry copying
  *                      the original file to the temporary copy  if  it  detects
  *                      that another process is writing  to  the  original  file
  *                      simultaneously. In all of these cases, the function will
