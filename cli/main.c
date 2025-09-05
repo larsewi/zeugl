@@ -52,7 +52,9 @@ int main(int argc, char *argv[]) {
       flags |= Z_TRUNCATE;
       break;
     case 'd':
+#if !NDEBUG
       LoggerEnable();
+#endif
       break;
     case 'v':
       printf("%s\n", PACKAGE_STRING);
