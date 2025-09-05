@@ -16,7 +16,7 @@
 
 #include "zeugl.h"
 
-#define DEV_RANDOM "/dev/random"
+#define DEV_RANDOM "/dev/urandom"
 #define MIN(a, b) ((a <= b) ? a : b)
 #define LOG_DEBUG(tid, ...) _log_message(tid, __FILE__, __LINE__, __VA_ARGS__)
 

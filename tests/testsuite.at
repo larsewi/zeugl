@@ -213,7 +213,7 @@ AT_SETUP([Test multithreaded file manipulation])
 AT_SKIP_IF([! grep -qE "^#define HAVE_PTHREAD 1$" "$abs_top_builddir/config.h"])
 
 # Run multithreaded test
-AT_CHECK(["$abs_top_builddir/tests/multithreaded" 128 "$((20 * 1024 * 1024))" testfile], [0], [ignore])
+AT_CHECK(["$abs_top_builddir/tests/multithreaded" 128 $((20 * 1024 * 1024)) testfile], [0], [ignore])
 
 AT_CLEANUP
 
@@ -224,7 +224,7 @@ AT_SETUP([Test multiprocess file manipulation])
 chmod +x "$abs_top_builddir/tests/multiprocess.sh"
 
 # Run multiprocess test
-AT_CHECK(["$abs_top_builddir/tests/multiprocess.sh"], [0], [ignore])
+AT_CHECK(["$abs_top_builddir/tests/multiprocess.sh" 128 $((20 * 1024 * 1024)) testfile], [0], [ignore])
 
 AT_CLEANUP
 
@@ -250,6 +250,18 @@ AT_SKIP_IF([! command -v shfmt])
 
 for file in "$abs_top_builddir"/**/*.sh; do
     AT_CHECK([shfmt --diff "$file"])
+done
+
+AT_CLEANUP
+
+########################################
+
+AT_SETUP([Static check shell scripts])
+
+AT_SKIP_IF([! command -v shellcheck])
+
+for file in "$abs_top_builddir"/**/*.sh; do
+    AT_CHECK([shellcheck "$file"])
 done
 
 AT_CLEANUP
