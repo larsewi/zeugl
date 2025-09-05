@@ -46,12 +46,14 @@ AC_CHECK_HEADER_STDBOOL
 AC_CHECK_HEADERS([fcntl.h
                   unistd.h
                   sys/file.h
-                  stdint.h])
+                  stdint.h
+                  inttypes.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_SIZE_T
 AC_TYPE_SSIZE_T
 AC_TYPE_MODE_T
+AC_TYPE_OFF_T
 
 # Checks for library functions.
 AC_FUNC_MALLOC
