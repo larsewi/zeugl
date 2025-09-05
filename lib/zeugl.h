@@ -11,7 +11,7 @@
 /**
  * @brief           Begins an  atomic  file  transaction  by  returning  a  file
  *                  descriptor to a temporary copy of  the  file.  Upon  calling
- *                  zclose() you can chose whether to commit the transaction  by
+ *                  zclose(), you can chose whether to commit the transaction by
  *                  replacing the original file with the temporary file.
  *
  * @param filename  The file to start the transaction on. This file will be left
