@@ -5,6 +5,10 @@ include_HEADERS = zeugl.h
 lib_LTLIBRARIES = libzeugl.la
 
 libzeugl_la_SOURCES = zeugl.c \
-    logger.h logger.c \
     filecopy.h filecopy.c \
-    wackamole.h wackamole.c
+    wackamole.h wackamole.c \
+    logger.h
+
+if !NDEBUG
+    libzeugl_la_SOURCES += logger.c
+endif

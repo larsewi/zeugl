@@ -37,6 +37,7 @@ if test "$debug" = yes; then
     CFLAGS="$CFLAGS -g -O0 -Werror -Wall -Wextra -Wconversion -Wformat"
 else
     AC_MSG_RESULT(no)
+    CPPFLAGS="$CPPFLAGS -DNDEBUG"
 fi
 AM_CONDITIONAL([NDEBUG], [test "$debug" = "no"])
 
