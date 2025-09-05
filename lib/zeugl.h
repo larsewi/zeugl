@@ -24,6 +24,8 @@
  *
  *                  Z_CREATE
  *                      if filename does not exist, create it as a regular file.
+ *                      Note that this flag requires you  to  specify  the  mode
+ *                      argument.
  *
  *                  Z_APPEND
  *                      the file offset is positioned at the  end  of  the  file
