@@ -79,7 +79,7 @@ bool safe_filecopy(int src, int dst, bool no_block) {
       return false;
     }
 
-    if ((sb_before.st_mtim.tv_sec == sb_after.st_mtim.tv_sec) ||
+    if ((sb_before.st_mtim.tv_sec == sb_after.st_mtim.tv_sec) &&
         (sb_before.st_mtim.tv_nsec == sb_after.st_mtim.tv_nsec)) {
       LOG_DEBUG(
           "Source file (fd = %d) appears to not be modified during file copy",
