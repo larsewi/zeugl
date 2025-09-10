@@ -6,6 +6,7 @@ lib_LTLIBRARIES = libzeugl.la
 
 libzeugl_la_SOURCES = zeugl.c \
     filecopy.h filecopy.c \
+    signals.h signals.c \
     whackamole.h whackamole.c \
     logger.h
 
