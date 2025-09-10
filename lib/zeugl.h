@@ -6,7 +6,7 @@
 #define Z_CREATE 1 << 0
 #define Z_APPEND 1 << 1
 #define Z_TRUNCATE 1 << 2
-#define Z_NOBLOCK 1 << 2
+#define Z_NOBLOCK 1 << 3
 
 /**
  * @brief           Begins an  atomic  file  transaction  by  returning  a  file
