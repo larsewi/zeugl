@@ -134,7 +134,7 @@ bool whack_a_mole(const char *orig, const char *temp) {
   }
 
   if (errno != 0) {
-    LOG_DEBUG("Failed to read directory '%s': %s", dname, errno);
+    LOG_DEBUG("Failed to read directory '%s': %s", dname, strerror(errno));
     goto FAIL;
   }
   LOG_DEBUG("Reached End-of-Directory '%s'", dname);
