@@ -10,7 +10,7 @@
 #include <unistd.h>
 
 #include "logger.h"
-#include "wackamole.h"
+#include "whackamole.h"
 
 static char *create_a_mole(const char *temp) {
   char *mole = malloc(strlen(temp) + strlen(".mole") + 1);
@@ -57,7 +57,7 @@ static bool is_a_mole(const char *orig, const char *mole) {
   return true;
 }
 
-bool wack_a_mole(const char *orig, const char *temp) {
+bool whack_a_mole(const char *orig, const char *temp) {
   bool success = false;
   DIR *dirp = NULL;
   char *mole = NULL;

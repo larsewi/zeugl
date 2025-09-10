@@ -21,7 +21,7 @@
 
 #include "filecopy.h"
 #include "logger.h"
-#include "wackamole.h"
+#include "whackamole.h"
 #include "zeugl.h"
 
 struct zfile {
@@ -279,7 +279,7 @@ int zclose(int fd, bool commit) {
     LOG_DEBUG("Changed file mode for file '%s' to %04jo", file->temp,
               (uintmax_t)file->mode);
 
-    if (!wack_a_mole(file->orig, file->temp)) {
+    if (!whack_a_mole(file->orig, file->temp)) {
       LOG_DEBUG("Failed to execute wack-a-mole algorithm "
                 "(orig = '%s', temp = '%s'): %s",
                 file->orig, file->temp, strerror(errno));

@@ -47,7 +47,7 @@ make super-clean                     # Git clean -fxd (removes all untracked fil
 ### Core Library (`lib/`)
 - **zeugl.h/c**: Main API providing `zopen()` and `zclose()` functions for atomic file operations
 - **filecopy.h/c**: File copying utilities with locking support
-- **wackamole.h/c**: Atomic file replacement using rename operations
+- **whackamole.h/c**: Atomic file replacement using rename operations
 - **logger.h/c**: Debug logging infrastructure
 
 ### Key Design Patterns
