@@ -122,6 +122,12 @@ int zopen(const char *fname, int flags, ...) {
       if (fstat(fd, &sb) != 0) {
         LOG_DEBUG("Failed to get mode from original file '%s' (fd = %d): %s",
                   file->orig, fd, strerror(errno));
+        if (close(fd) == 0) {
+          LOG_DEBUG("Closed original file '%s' (fd = %d)", file->orig, fd);
+        } else {
+          LOG_DEBUG("Failed to close original file '%s' (fd = %d): %s",
+                    file->orig, fd, strerror(errno));
+        }
         goto FAIL;
       }
       file->mode = sb.st_mode & 0777; /* Don't keep user bit */
