@@ -7,7 +7,6 @@
 #include <libgen.h>
 #include <limits.h>
 #include <pthread.h>
-#include <signal.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -35,10 +34,21 @@ struct zfile {
 };
 
 #ifdef HAVE_PTHREAD
+
+/* Mutex to protect list of open files in multithreaded programs
+ */
 static pthread_mutex_t OPEN_FILES_MUTEX = PTHREAD_MUTEX_INITIALIZER;
+
 #endif /* HAVE_PTHREADS */
+
+/* List of files opened with zopen()
+ */
 static struct zfile *OPEN_FILES = NULL;
-static volatile sig_atomic_t handlers_installed = 0;
+
+/* Track whether handlers are installed.
+ * We only do this on the first call to zopen().
+ */
+static bool handlers_installed = false;
 
 /**
  * Cleanup function that removes all temporary files.
@@ -51,44 +61,26 @@ static void cleanup_open_files(void) {
    * 3. This is a best-effort cleanup for abnormal termination
    */
 
-  struct zfile *current = OPEN_FILES;
-  while (current != NULL) {
-    struct zfile *next = current->next;
-
-    /* Close file descriptor if still open */
-    if (current->fd >= 0) {
-      if (close(current->fd) == 0) {
-        LOG_DEBUG("Cleanup: Closed file descriptor %d", current->fd);
-      } else {
-        LOG_DEBUG("Cleanup: Failed to close file descriptor %d", current->fd);
-      }
+  for (struct zfile *file = OPEN_FILES; file != NULL; file = file->next) {
+    /* Close file descriptor in case its open */
+    if (close(file->fd) == 0) {
+      LOG_DEBUG("Cleanup: Closed file descriptor %d", file->fd);
+    } else {
+      LOG_DEBUG("Cleanup: Failed to close file descriptor %d", file->fd);
     }
 
     /* Remove temporary file */
-    if (current->temp != NULL) {
-      if (unlink(current->temp) == 0) {
-        LOG_DEBUG("Cleanup: Removed temporary file '%s'", current->temp);
+    if (file->temp != NULL) {
+      if (unlink(file->temp) == 0) {
+        LOG_DEBUG("Cleanup: Removed temporary file '%s'", file->temp);
       } else {
         LOG_DEBUG("Cleanup: Failed to remove temporary file '%s': %s",
-                  current->temp, strerror(errno));
+                  file->temp, strerror(errno));
       }
     }
-
-    current = next;
   }
 
   OPEN_FILES = NULL;
-}
-
-/**
- * Install cleanup handlers on first use.
- * Called from zopen() after first successful file creation.
- */
-static void install_cleanup_handlers(void) {
-  if (handlers_installed == 0) {
-    install_signal_handlers(cleanup_open_files);
-    handlers_installed = 1;
-  }
 }
 
 int zopen(const char *fname, int flags, ...) {
@@ -242,7 +234,10 @@ int zopen(const char *fname, int flags, ...) {
             file->orig, file->temp, file->fd, file->mode);
 
   /* Install cleanup handlers on first successful file creation */
-  install_cleanup_handlers();
+  if (!handlers_installed) {
+    install_signal_handlers(cleanup_open_files);
+    handlers_installed = true;
+  }
 
 #ifdef HAVE_PTHREAD
   ret = pthread_mutex_unlock(&OPEN_FILES_MUTEX);
