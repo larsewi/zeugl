@@ -246,6 +246,9 @@ wait "$PID"
 # Check that file is cleaned up
 AT_CHECK([test -e test_file.txt.??????], [1])
 
+# Check that signal handlers are chained
+AT_CHECK([test -e hello-from-chained-signal-handler], [0])
+
 AT_CLEANUP
 
 ########################################

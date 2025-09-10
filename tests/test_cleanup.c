@@ -1,16 +1,30 @@
-#include "lib/zeugl.h"
+#include <fcntl.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
+
+#include <zeugl.h>
+
+static void signal_handler(__attribute__((unused)) int sig) {
+  printf("Old signal handler is called!\n");
+  creat("hello-from-chained-signal-handler", (mode_t)0644);
+}
 
 int main(int argc, const char *argv[]) {
   printf("Testing cleanup handlers...\n");
 
+  /* Install a signal handler, to make sure new signal handlers are chained */
+  struct sigaction sa = {0};
+  sa.sa_handler = signal_handler;
+  sigemptyset(&sa.sa_mask);
+  sigaction(SIGTERM, &sa, NULL);
+
   /* Create a test file that will be left open */
-  int fd = zopen("test_file.txt", Z_CREATE | Z_TRUNCATE, 0644);
+  int fd = zopen("test_file.txt", Z_CREATE | Z_TRUNCATE, (mode_t)0644);
   if (fd < 0) {
     perror("zopen failed");
     return 1;
