@@ -113,7 +113,7 @@ bool whack_a_mole(const char *orig, const char *temp) {
                   survivor);
       } else if /* New survivor */ (strcmp(challenger, survivor) > 0) {
         unlink(survivor); /* Don't care if it fails */
-        LOG_DEBUG("Previous survivor '%s' got wacked", survivor);
+        LOG_DEBUG("Previous survivor '%s' got whacked", survivor);
         free(survivor);
 
         survivor = strdup(challenger);
@@ -125,7 +125,7 @@ bool whack_a_mole(const char *orig, const char *temp) {
                   survivor);
       } else /* Keep old survivor */ {
         unlink(challenger); /* Don't care if it fails */
-        LOG_DEBUG("New challenger '%s' got wacked", dire->d_name);
+        LOG_DEBUG("New challenger '%s' got whacked", dire->d_name);
       }
     }
 
