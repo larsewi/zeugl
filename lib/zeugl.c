@@ -1,12 +1,11 @@
 #include "config.h"
 
-#include <asm-generic/errno-base.h>
 #include <assert.h>
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <libgen.h>
-#include <linux/limits.h>
+#include <limits.h>
 #include <pthread.h>
 #include <stdarg.h>
 #include <stddef.h>
