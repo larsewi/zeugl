@@ -119,4 +119,5 @@ zeugl
 build/*
 .vscode/*
 tests/testsuite.dir/*
-multithreaded
+test_multithreaded
+test_cleanup

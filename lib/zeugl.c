@@ -7,6 +7,7 @@
 #include <libgen.h>
 #include <limits.h>
 #include <pthread.h>
+#include <signal.h>
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -36,6 +37,97 @@ struct zfile {
 static pthread_mutex_t OPEN_FILES_MUTEX = PTHREAD_MUTEX_INITIALIZER;
 #endif /* HAVE_PTHREADS */
 static struct zfile *OPEN_FILES = NULL;
+static volatile sig_atomic_t handlers_installed = 0;
+
+/**
+ * Cleanup function that removes all temporary files.
+ * This is called at normal exit via atexit() or from signal handler.
+ */
+static void cleanup_open_files(void) {
+  /* Note: We don't lock the mutex here because:
+   * 1. In atexit() context, we're single-threaded (other threads are gone)
+   * 2. In signal handler context, we can't use pthread functions safely
+   * 3. This is a best-effort cleanup for abnormal termination
+   */
+
+  struct zfile *current = OPEN_FILES;
+  while (current != NULL) {
+    struct zfile *next = current->next;
+
+    /* Close file descriptor if still open */
+    if (current->fd >= 0) {
+      if (close(current->fd) == 0) {
+          LOG_DEBUG("Cleanup: Failed to close file descriptor %d", current->fd);
+      }
+      else {
+          LOG_DEBUG("Cleanup: Closed file descriptor %d", current->fd);
+      }
+    }
+
+    /* Remove temporary file */
+    if (current->temp != NULL) {
+      if (unlink(current->temp) == 0) {
+        LOG_DEBUG("Cleanup: Removed temporary file '%s'", current->temp);
+      } else {
+        LOG_DEBUG("Cleanup: Failed to remove temporary file '%s': %s",
+                  current->temp, strerror(errno));
+      }
+    }
+
+    current = next;
+  }
+
+  OPEN_FILES = NULL;
+}
+
+/**
+ * Signal handler for abnormal termination.
+ */
+static void signal_handler(int sig) {
+  /* Cleanup temporary files */
+  cleanup_open_files();
+
+  /* Reset signal handler to default and re-raise signal */
+  signal(sig, SIG_DFL);
+  raise(sig);
+}
+
+/**
+ * Install cleanup handlers on first use.
+ * Called from zopen() after first successful file creation.
+ */
+static void install_cleanup_handlers(void) {
+  if (handlers_installed == 0) {
+    /* Register cleanup for normal exit */
+    if (atexit(cleanup_open_files) != 0) {
+      LOG_DEBUG("Failed to register atexit handler");
+    }
+
+    /* Install signal handlers for abnormal termination */
+    struct sigaction sa;
+    memset(&sa, 0, sizeof(sa));
+    sa.sa_handler = signal_handler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+
+    /* Handle common termination signals */
+    if (sigaction(SIGINT, &sa, NULL) != 0) {
+      LOG_DEBUG("Failed to install SIGINT handler");
+    }
+    if (sigaction(SIGTERM, &sa, NULL) != 0) {
+      LOG_DEBUG("Failed to install SIGTERM handler");
+    }
+    if (sigaction(SIGHUP, &sa, NULL) != 0) {
+      LOG_DEBUG("Failed to install SIGHUP handler");
+    }
+    if (sigaction(SIGQUIT, &sa, NULL) != 0) {
+      LOG_DEBUG("Failed to install SIGQUIT handler");
+    }
+
+    handlers_installed = 1;
+    LOG_DEBUG("Installed cleanup handlers for process termination");
+  }
+}
 
 int zopen(const char *fname, int flags, ...) {
   assert(fname != NULL);
@@ -186,6 +278,9 @@ int zopen(const char *fname, int flags, ...) {
   LOG_DEBUG("Added file to list of open files "
             "(orig = '%s', temp = '%s', fd = %d, mode = %04jo)",
             file->orig, file->temp, file->fd, file->mode);
+
+  /* Install cleanup handlers on first successful file creation */
+  install_cleanup_handlers();
 
 #ifdef HAVE_PTHREAD
   ret = pthread_mutex_unlock(&OPEN_FILES_MUTEX);

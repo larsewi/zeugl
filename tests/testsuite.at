@@ -213,7 +213,7 @@ AT_SETUP([Test multithreaded file manipulation])
 AT_SKIP_IF([! grep -qE "^#define HAVE_PTHREAD 1$" "$abs_top_builddir/config.h"])
 
 # Run multithreaded test
-AT_CHECK(["$abs_top_builddir/tests/multithreaded" 128 $((20 * 1024 * 1024)) testfile], [0], [ignore])
+AT_CHECK(["$abs_top_builddir/tests/test_multithreaded" 128 $((20 * 1024 * 1024)) testfile], [0], [ignore])
 
 AT_CLEANUP
 
@@ -222,10 +222,67 @@ AT_CLEANUP
 AT_SETUP([Test multiprocess file manipulation])
 
 # Make sure shell script is executable
-chmod +x "$abs_top_builddir/tests/multiprocess.sh"
+chmod +x "$abs_top_builddir/tests/test_multiprocess.sh"
 
 # Run multiprocess test
-AT_CHECK(["$abs_top_builddir/tests/multiprocess.sh" 128 $((20 * 1024 * 1024)) testfile], [0], [ignore])
+AT_CHECK(["$abs_top_builddir/tests/test_multiprocess.sh" 128 $((20 * 1024 * 1024)) testfile], [0], [ignore])
+
+AT_CLEANUP
+
+########################################
+
+AT_SETUP([Test cleanup on SIGTERM])
+
+"$abs_top_builddir/tests/test_cleanup" signal &
+PID=$!
+sleep 1
+
+# Check that file exists
+AT_CHECK([test -e test_file.txt.??????], [0])
+
+# Wait for child process to finish
+wait "$PID"
+
+# Check that file is cleaned up
+AT_CHECK([test -e test_file.txt.??????], [1])
+
+AT_CLEANUP
+
+########################################
+
+AT_SETUP([Test no cleanup on abort()])
+
+"$abs_top_builddir/tests/test_cleanup" abort &
+PID=$!
+sleep 1
+
+# Check that file exists
+AT_CHECK([test -e test_file.txt.??????], [0])
+
+# Wait for child process to finish
+wait "$PID"
+
+# Check that file is not cleaned up
+AT_CHECK([test -e test_file.txt.??????], [0])
+
+AT_CLEANUP
+
+########################################
+
+AT_SETUP([Test cleanup at exit])
+
+"$abs_top_builddir/tests/test_cleanup" &
+PID=$!
+sleep 1
+
+# Check that file exists
+AT_CHECK([test -e test_file.txt.??????], [0])
+
+# Wait for child process to finish
+wait "$PID"
+
+# Check that file is cleaned up
+AT_CHECK([test -e test_file.txt.??????], [1])
 
 AT_CLEANUP
 
