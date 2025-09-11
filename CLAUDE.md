@@ -49,6 +49,7 @@ make super-clean                     # Git clean -fxd (removes all untracked fil
 - **filecopy.h/c**: File copying utilities with locking support
 - **whackamole.h/c**: Atomic file replacement using rename operations
 - **logger.h/c**: Debug logging infrastructure
+- **signals.h/c**: Install signal handlers for cleaning up temporary files
 
 ### Key Design Patterns
 
@@ -68,7 +69,7 @@ make super-clean                     # Git clean -fxd (removes all untracked fil
   - `-a`: Append mode
   - `-t`: Truncate file
   - `-d`: Debug output
-  - `-v`: Verbose output
+  - `-v`: Print version information
 
 ### Testing (`tests/`)
 - Uses GNU Autotest framework
