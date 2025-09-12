@@ -2,6 +2,7 @@
 
 #include <errno.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <sys/file.h>
 #include <sys/stat.h>
@@ -11,7 +12,7 @@
 #include "logger.h"
 
 bool filecopy(int src, int dst) {
-  char buffer[4096];
+  char buffer[BUFFER_SIZE];
 
   int eof = 0;
   do {

@@ -27,6 +27,10 @@ AM_PROG_AR
 
 LT_INIT
 
+
+AC_DEFINE([BUFFER_SIZE], 65536,
+          [Buffer size used for file copying (default 64 KiB)])
+
 # Check for debug option.
 AC_ARG_ENABLE([debug],
               AS_HELP_STRING([--enable-debug], [enable debugging [default=no]]),

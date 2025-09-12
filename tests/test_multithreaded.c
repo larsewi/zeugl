@@ -77,13 +77,13 @@ static bool file_rand_fill(int dst, size_t num_bytes) {
   }
 
   size_t tot_written = 0;
-  char buffer[BUFSIZ];
+  char buffer[BUFFER_SIZE];
   do {
     size_t n_read = 0;
     size_t tot_remaining = num_bytes - tot_written;
     do {
-      ssize_t ret =
-          read(src, buffer + n_read, MIN(BUFSIZ - n_read, tot_remaining));
+      ssize_t ret = read(src, buffer + n_read,
+                         MIN(sizeof(buffer) - n_read, tot_remaining));
       if (ret < 0) {
         if (errno == EINTR) {
           continue;
@@ -93,7 +93,7 @@ static bool file_rand_fill(int dst, size_t num_bytes) {
       }
 
       n_read += (size_t)ret;
-    } while (n_read < BUFSIZ && n_read < num_bytes);
+    } while (n_read < sizeof(buffer) && n_read < num_bytes);
 
     size_t n_written = 0;
     do {
