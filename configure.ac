@@ -34,7 +34,7 @@ AC_ARG_ENABLE([debug],
 AC_MSG_CHECKING([for debug option])
 if test "$debug" = yes; then
     AC_MSG_RESULT(yes)
-    CFLAGS="$CFLAGS -g -O0 -Werror -Wall -Wextra -Wconversion -Wformat"
+    CFLAGS="$CFLAGS -g -O0 -Werror -Wall -Wextra -Wconversion -Wformat -Wshadow -Wcast-align -Wunused"
 else
     AC_MSG_RESULT(no)
     CPPFLAGS="$CPPFLAGS -DNDEBUG"
