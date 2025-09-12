@@ -2,8 +2,12 @@ ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = lib cli . tests
 
 format:
-	if command -v clang-format; then clang-format -i --verbose **/*.{c,h}; fi
-	if command -v shfmt; then shfmt --write --simplify --list **/*.sh; fi
+	clang-format -i --verbose **/*.{c,h}
+	shfmt --write --simplify --list **/*.sh
+
+check-format:
+	clang-format --dry-run --Werror **/*.{c,h}
+	shfmt --diff --simplify --list **/*.sh
 
 super-clean:
 	if command -v git; then git clean -fxd; fi
