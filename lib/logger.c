@@ -5,6 +5,7 @@
 #include <stdlib.h>
 
 #include "logger.h"
+#include "utils.h"
 
 static int enabled = 0;
 
@@ -23,10 +24,7 @@ void LoggerLogMessage(const char *file, int line, const char *format, ...) {
   va_list ap;
   va_start(ap, format);
 
-#ifdef NDEBUG
-  __attribute__((unused))
-#endif
-  int ret = vsnprintf(msg, sizeof(msg), format, ap);
+  NDEBUG_UNUSED int ret = vsnprintf(msg, sizeof(msg), format, ap);
   assert(ret >= 0 && (size_t)ret < sizeof(msg));
 
   va_end(ap);

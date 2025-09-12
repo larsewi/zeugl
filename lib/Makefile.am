@@ -8,7 +8,7 @@ libzeugl_la_SOURCES = zeugl.c \
     filecopy.h filecopy.c \
     signals.h signals.c \
     whackamole.h whackamole.c \
-    logger.h
+    logger.h utils.h
 
 if !NDEBUG
     libzeugl_la_SOURCES += logger.c

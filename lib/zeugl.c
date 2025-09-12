@@ -34,21 +34,16 @@ struct zfile {
 };
 
 #ifdef HAVE_PTHREAD
-
-/* Mutex to protect list of open files in multithreaded programs
+/**
+ * Mutex to protect list of open files in multithreaded programs
  */
 static pthread_mutex_t OPEN_FILES_MUTEX = PTHREAD_MUTEX_INITIALIZER;
-
 #endif /* HAVE_PTHREADS */
 
-/* List of files opened with zopen()
+/**
+ * List of files opened with zopen()
  */
 static struct zfile *OPEN_FILES = NULL;
-
-/* Track whether handlers are installed.
- * We only do this on the first call to zopen().
- */
-static bool handlers_installed = false;
 
 /**
  * Cleanup function that removes all temporary files.
@@ -233,11 +228,11 @@ int zopen(const char *fname, int flags, ...) {
             "(orig = '%s', temp = '%s', fd = %d, mode = %04jo)",
             file->orig, file->temp, file->fd, file->mode);
 
-  /* Install cleanup handlers on first successful file creation */
-  if (!handlers_installed) {
-    install_signal_handlers(cleanup_open_files);
-    handlers_installed = true;
-  }
+  /* Install cleanup handlers on first successful file creation.
+   * This only happens the first time this function is called.
+   * Subsequent calls results in NOOP.
+   */
+  install_signal_handlers(cleanup_open_files);
 
 #ifdef HAVE_PTHREAD
   ret = pthread_mutex_unlock(&OPEN_FILES_MUTEX);
