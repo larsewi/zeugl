@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Zeugl is a C library that provides atomic file operations with minimal API changes. It provides drop-in replacements for `open()` and `close()` functions (`zopen()` and `zclose()`) while keeping standard I/O functions unchanged. The library uses temporary files and atomic rename operations to ensure file updates are atomic.
+zeugl is a C library that provides atomic file operations with minimal API changes. It provides drop-in replacements for `open()` and `close()` functions (`zopen()` and `zclose()`) while keeping standard I/O functions unchanged. The library uses temporary files and atomic rename operations to ensure file updates are atomic.
 
 ## Build Commands
 
