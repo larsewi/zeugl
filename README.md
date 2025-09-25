@@ -1,5 +1,7 @@
 # zeugl
 
+<img src="icon.svg" alt="zeugl icon" width="100" height="100">
+
 A C library that provides atomic file operations with minimal API changes.
 
 ## What is zeugl?

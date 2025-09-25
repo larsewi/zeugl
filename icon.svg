@@ -1,0 +1,26 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="50" cy="50" r="45" fill="#2563eb" stroke="#1d4ed8" stroke-width="2"/>
+  
+  <!-- File document base -->
+  <rect x="30" y="25" width="40" height="50" rx="2" fill="#ffffff" stroke="#e5e7eb" stroke-width="1"/>
+  
+  <!-- Atomic structure overlay -->
+  <!-- Central nucleus -->
+  <circle cx="50" cy="50" r="3" fill="#dc2626"/>
+  
+  <!-- Electron orbits -->
+  <ellipse cx="50" cy="50" rx="12" ry="8" fill="none" stroke="#059669" stroke-width="1.5" opacity="0.8"/>
+  <ellipse cx="50" cy="50" rx="8" ry="12" fill="none" stroke="#059669" stroke-width="1.5" opacity="0.8"/>
+  
+  <!-- Electrons -->
+  <circle cx="62" cy="50" r="2" fill="#059669"/>
+  <circle cx="50" cy="62" r="2" fill="#059669"/>
+  <circle cx="38" cy="50" r="2" fill="#059669"/>
+  
+  <!-- Lock symbol for atomic operations -->
+  <g transform="translate(55, 55)">
+    <rect x="0" y="6" width="12" height="8" rx="1" fill="#f59e0b" stroke="#d97706" stroke-width="0.5"/>
+    <path d="M2 6 Q2 2 6 2 Q10 2 10 6" fill="none" stroke="#d97706" stroke-width="1.5"/>
+  </g>
+</svg>
