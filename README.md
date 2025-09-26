@@ -34,7 +34,7 @@ developers to achieve atomicity with just a few line modifications.
    temporary copy
 2. All modifications happen on the temporary copy
 3. When you call `zclose()`, the temporary file atomically replaces the original
-4. If there is a raise between two processes, its guaranteed that one (and only
+4. If there is a raise between two processes, it's guaranteed that one (and only
    one) process gets to replace the file
 5. If the process is interrupted, temporary files are automatically cleaned up
 

@@ -121,3 +121,5 @@ build/*
 tests/testsuite.dir/*
 test_multithreaded
 test_cleanup
+man/*.1
+man/*.3

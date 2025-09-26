@@ -1,5 +1,5 @@
 ACLOCAL_AMFLAGS = -I m4
-SUBDIRS = lib cli . tests
+SUBDIRS = lib cli man . tests
 
 format:
 	clang-format -i --verbose **/*.{c,h}
