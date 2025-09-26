@@ -8,8 +8,8 @@ A C library that provides atomic file operations with minimal API changes.
 
 zeugl is a lightweight C library that makes file operations atomic by providing
 drop-in replacements for standard file operations. Instead of directly modifying
-files (which can lead to corruption), zeugl ensures all file updates are atomic
-- they either complete fully or don't happen at all.
+files (which can lead to corruption), zeugl ensures all file updates are
+atomic - they either completed fully or don't happen at all.
 
 The library provides drop-in replacements for `open()` and `close()` while
 keeping standard I/O functions like `read()` and `write()` unchanged, allowing
