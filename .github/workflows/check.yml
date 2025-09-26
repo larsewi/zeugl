@@ -1,0 +1,40 @@
+name: Run tests
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck cppcheck
+
+      - name: Bootstrap
+        run: ./bootstrap.sh
+
+      - name: Configure
+        run: ./configure --enable-debug
+
+      - name: Build
+        run: make -j$(nproc)
+
+      - name: Run tests
+        run: make check
+
+      - name: Upload test logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs
+          path: tests/testsuite.log
