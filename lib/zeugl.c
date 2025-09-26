@@ -30,6 +30,7 @@ struct zfile {
   char *mole;
   int fd;
   mode_t mode;
+  int flags;
   struct zfile *next;
 };
 
@@ -89,6 +90,7 @@ int zopen(const char *fname, int flags, ...) {
     return -1;
   }
   file->fd = -1;
+  file->flags = flags;
 
   file->orig = strdup(fname);
   if (file->orig == NULL) {
@@ -113,11 +115,11 @@ int zopen(const char *fname, int flags, ...) {
   LOG_DEBUG("Created temporary file '%s' (fd = %d)", file->temp, file->fd);
 
   /* Extract mode argument from zopen() if Z_CREATE was specified */
-  mode_t mode;
+  int mode; /* Avoid using mode_t in va_arg() */
   if (flags & Z_CREATE) {
     va_list ap;
     va_start(ap, flags);
-    mode = va_arg(ap, mode_t) & 0777; /* Don't keep user bit */
+    mode = va_arg(ap, int) & 0777; /* Don't keep user bit */
     va_end(ap);
   }
 
@@ -130,7 +132,7 @@ int zopen(const char *fname, int flags, ...) {
     } else {
       if ((flags & Z_CREATE) && (errno == ENOENT)) {
         /* Use mode specified in argument */
-        file->mode = mode;
+        file->mode = (mode_t)mode;
         LOG_DEBUG("Original file '%s' does not exist: "
                   "Using specified mode %04jo",
                   file->orig, (uintmax_t)file->mode);
@@ -146,7 +148,7 @@ int zopen(const char *fname, int flags, ...) {
       if ((flags & Z_CREATE) && (errno == ENOENT)) {
         /* If Z_CREATE was specified, then ENOENT can be expected */
         /* Use mode specified in argument */
-        file->mode = mode;
+        file->mode = (mode_t)mode;
         LOG_DEBUG("Original file '%s' does not exist: "
                   "Using specified mode %04jo",
                   file->orig, (uintmax_t)file->mode);
@@ -225,8 +227,8 @@ int zopen(const char *fname, int flags, ...) {
   file->next = OPEN_FILES;
   OPEN_FILES = file;
   LOG_DEBUG("Added file to list of open files "
-            "(orig = '%s', temp = '%s', fd = %d, mode = %04jo)",
-            file->orig, file->temp, file->fd, file->mode);
+            "(orig = '%s', temp = '%s', fd = %d, mode = %04jo, flags = 0x%08x)",
+            file->orig, file->temp, file->fd, file->mode, file->flags);
 
   /* Install cleanup handlers on first successful file creation.
    * This only happens the first time this function is called.
@@ -331,7 +333,8 @@ int zclose(int fd, bool commit) {
     LOG_DEBUG("Changed file mode for file '%s' to %04jo", file->temp,
               (uintmax_t)file->mode);
 
-    if (!whack_a_mole(file->orig, file->temp)) {
+    if (!whack_a_mole(file->orig, file->temp, file->flags & Z_IMMUTABLE,
+                      file->flags & Z_NOBLOCK)) {
       LOG_DEBUG("Failed to execute wack-a-mole algorithm "
                 "(orig = '%s', temp = '%s'): %s",
                 file->orig, file->temp, strerror(errno));

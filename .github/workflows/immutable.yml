@@ -1,0 +1,40 @@
+name: Test immutable bit
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  test-immutable:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            deps_install: |
+              sudo apt-get update
+              sudo apt-get install -y build-essential autoconf automake libtool e2fsprogs
+          - os: macos-latest
+            deps_install: brew install autoconf automake libtool
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: ${{ matrix.deps_install }}
+
+      - name: Build zeugl
+        run: |
+          ./bootstrap.sh
+          ./configure --enable-debug
+          make
+
+      - name: Test immutable operations
+        run: |
+          chmod +x tests/test_immutable.sh
+          sudo tests/test_immutable.sh

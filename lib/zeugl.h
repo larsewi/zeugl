@@ -7,6 +7,7 @@
 #define Z_APPEND 1 << 1
 #define Z_TRUNCATE 1 << 2
 #define Z_NOBLOCK 1 << 3
+#define Z_IMMUTABLE 1 << 4
 
 /**
  * @brief           Begins an atomic file transaction.
