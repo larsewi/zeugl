@@ -11,6 +11,12 @@ AC_CONFIG_MACRO_DIR([m4])
 
 AM_INIT_AUTOMAKE([-Wall -Werror foreign subdir-objects])
 
+# Generate date for man pages
+PACKAGE_YEAR=$(date '+%Y')
+AC_SUBST([PACKAGE_YEAR])
+PACKAGE_MONTH=$(date '+%B')
+AC_SUBST([PACKAGE_MONTH])
+
 # Load macros.
 m4_include([m4/ax_pthread.m4])
 

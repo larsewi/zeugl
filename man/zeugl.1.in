@@ -1,4 +1,4 @@
-.TH ZEUGL 1 "@PACKAGE_VERSION@" "@PACKAGE_NAME@" "User Commands"
+.TH ZEUGL 1 "@PACKAGE_MONTH@ @PACKAGE_YEAR@" "@PACKAGE_NAME@ @PACKAGE_VERSION@" "User Commands"
 .SH NAME
 @PACKAGE_NAME@ \- atomic file operations command-line tool
 .SH SYNOPSIS
@@ -121,5 +121,5 @@ Written by the @PACKAGE_NAME@ contributors.
 .SH BUGS
 Report bugs at: @PACKAGE_BUGREPORT@
 .SH COPYRIGHT
-Copyright (C) 2025 @PACKAGE_NAME@ contributors.
+Copyright (C) @PACKAGE_YEAR@ @PACKAGE_NAME@ contributors.
 This is free software; see the source for copying conditions.

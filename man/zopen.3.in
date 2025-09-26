@@ -1,4 +1,4 @@
-.TH ZOPEN 3 "@PACKAGE_VERSION@" "@PACKAGE_NAME@" "Library Functions Manual"
+.TH ZOPEN 3 "@PACKAGE_MONTH@ @PACKAGE_YEAR@" "@PACKAGE_NAME@ @PACKAGE_VERSION@" "Library Functions Manual"
 .SH NAME
 zopen, zclose \- atomic file operations
 .SH SYNOPSIS
@@ -266,5 +266,5 @@ Written by the @PACKAGE_NAME@ contributors.
 .SH BUGS
 Report bugs at: @PACKAGE_BUGREPORT@
 .SH COPYRIGHT
-Copyright (C) 2025 @PACKAGE_NAME@ contributors.
+Copyright (C) @PACKAGE_YEAR@ @PACKAGE_NAME@ contributors.
 This is free software; see the source for copying conditions.

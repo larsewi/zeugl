@@ -11,6 +11,8 @@ SUFFIXES = .1.in .1 .3.in .3
 	$(AM_V_GEN)$(SED) \
 		-e 's|@PACKAGE_NAME[@]|$(PACKAGE_NAME)|g' \
 		-e 's|@PACKAGE_VERSION[@]|$(PACKAGE_VERSION)|g' \
+		-e 's|@PACKAGE_YEAR[@]|$(PACKAGE_YEAR)|g' \
+		-e 's|@PACKAGE_MONTH[@]|$(PACKAGE_MONTH)|g' \
 		-e 's|@PACKAGE_BUGREPORT[@]|$(PACKAGE_BUGREPORT)|g' \
 		< $< > $@
 
@@ -18,5 +20,7 @@ SUFFIXES = .1.in .1 .3.in .3
 	$(AM_V_GEN)$(SED) \
 		-e 's|@PACKAGE_NAME[@]|$(PACKAGE_NAME)|g' \
 		-e 's|@PACKAGE_VERSION[@]|$(PACKAGE_VERSION)|g' \
+		-e 's|@PACKAGE_YEAR[@]|$(PACKAGE_YEAR)|g' \
+		-e 's|@PACKAGE_MONTH[@]|$(PACKAGE_MONTH)|g' \
 		-e 's|@PACKAGE_BUGREPORT[@]|$(PACKAGE_BUGREPORT)|g' \
 		< $< > $@
