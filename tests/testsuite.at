@@ -291,20 +291,6 @@ AT_CLEANUP
 
 ########################################
 
-AT_SETUP([Check formatting on C code])
-
-# Skip if clang-format is not installed
-AT_SKIP_IF([! command -v clang-format])
-
-# Run clang-format on all source files
-for file in "$abs_top_builddir"/**/*.{c,h}; do
-    AT_CHECK([clang-format --dry-run --Werror "$file"])
-done
-
-AT_CLEANUP
-
-########################################
-
 AT_SETUP([Static check C code])
 
 # Skip if cppcheck is not installed
@@ -314,20 +300,6 @@ AT_CHECK([cppcheck --force --error-exitcode=1 --check-level=exhaustive \
 --enable=all --disable=missingInclude --include="$abs_top_builddir"/config.h \
 -I "$abs_top_builddir"/ -I "$abs_top_builddir"/lib/ "$abs_top_builddir"],
 [0], [ignore], [ignore])
-
-AT_CLEANUP
-
-########################################
-
-AT_SETUP([Check formatting on shell scripts])
-
-# Skip if shfmt is not installed
-AT_SKIP_IF([! command -v shfmt])
-
-# Run shfmt on all shell files
-for file in "$abs_top_builddir"/**/*.sh; do
-    AT_CHECK([shfmt --diff "$file"])
-done
 
 AT_CLEANUP
 

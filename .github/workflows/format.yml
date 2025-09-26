@@ -1,4 +1,4 @@
-name: Check formatting on sources
+name: Check formatting
 
 on:
   push:
@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
-        run: sudo apt install shfmt clang-format
+        run: sudo apt -y install shfmt clang-format
       - name: Initial setup
         run: ./bootstrap.sh
       - name: Configure
