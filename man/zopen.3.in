@@ -1,4 +1,4 @@
-.TH ZOPEN 3 "January 2025" "zeugl" "Library Functions Manual"
+.TH ZOPEN 3 "@PACKAGE_VERSION@" "@PACKAGE_NAME@" "Library Functions Manual"
 .SH NAME
 zopen, zclose \- atomic file operations
 .SH SYNOPSIS
@@ -11,7 +11,7 @@ zopen, zclose \- atomic file operations
 .PP
 Link with \fI\-lzeugl\fR.
 .SH DESCRIPTION
-The zeugl library provides atomic file operations through a transaction-based
+The @PACKAGE_NAME@ library provides atomic file operations through a transaction-based
 interface. Files are modified by creating a temporary copy, modifying it, and
 then atomically replacing the original file.
 .SS zopen()
@@ -129,7 +129,7 @@ may additionally fail with:
 The file descriptor was not obtained from
 .BR zopen ().
 .SH THREAD SAFETY
-When compiled with pthread support, the zeugl library is thread-safe.
+When compiled with pthread support, the @PACKAGE_NAME@ library is thread-safe.
 Multiple threads can safely call
 .BR zopen ()
 and
@@ -262,9 +262,9 @@ zclose(fd, false);  // Original file remains unchanged
 .BR mkstemp (3),
 .BR zeugl (1)
 .SH AUTHORS
-Written by the zeugl contributors.
+Written by the @PACKAGE_NAME@ contributors.
 .SH BUGS
-Report bugs at: https://github.com/larsewi/zeugl/issues
+Report bugs at: @PACKAGE_BUGREPORT@
 .SH COPYRIGHT
-Copyright (C) 2025 zeugl contributors.
+Copyright (C) 2025 @PACKAGE_NAME@ contributors.
 This is free software; see the source for copying conditions.
