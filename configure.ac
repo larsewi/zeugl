@@ -74,5 +74,6 @@ AC_CONFIG_TESTDIR([tests])
 AC_CONFIG_FILES([Makefile
                  cli/Makefile
                  lib/Makefile
+                 man/Makefile
                  tests/Makefile])
 AC_OUTPUT

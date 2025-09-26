@@ -1,0 +1,125 @@
+.TH ZEUGL 1 "January 2025" "zeugl" "User Commands"
+.SH NAME
+zeugl \- atomic file operations command-line tool
+.SH SYNOPSIS
+.B zeugl
+[\fI\-f INPUT_FILE\fR]
+[\fI\-c MODE\fR]
+[\fI\-a\fR]
+[\fI\-t\fR]
+[\fI\-d\fR]
+[\fI\-v\fR]
+[\fI\-h\fR]
+\fIOUTPUT_FILE\fR
+.SH DESCRIPTION
+.B zeugl
+is a command-line tool for performing atomic file operations. It reads from an
+input source (stdin by default) and writes to an output file atomically,
+ensuring that the output file is never left in a partially-written state.
+.PP
+The tool uses temporary files and atomic rename operations to ensure that file
+updates are atomic. This prevents data corruption and ensures that other
+processes always see either the complete old version or the complete new version
+of a file, never a partially-written state.
+.PP
+If there is a raise between two processes or threads, it's guaranteed that one
+(and only one) process gets to replace the file.
+.SH OPTIONS
+.TP
+.BR \-f " " \fIFILE\fR
+Read input from \fIFILE\fR instead of standard input.
+.TP
+.BR \-c " " \fIMODE\fR
+Create the output file with the specified octal \fIMODE\fR (e.g., 644).
+If the file already exists, this option is ignored.
+.TP
+.BR \-a
+Open the output file in append mode. Data will be added to the end of the file
+rather than overwriting existing content.
+.TP
+.BR \-t
+Truncate the output file. The file will be emptied before writing new data.
+.TP
+.BR \-d
+Enable debug output. This will print detailed information about the atomic
+operations being performed.
+.TP
+.BR \-v
+Display version information and exit.
+.TP
+.BR \-h
+Display help message and exit.
+.SH EXIT STATUS
+.TP
+.B 0
+Success
+.TP
+.B 1
+Error
+.SH EXAMPLES
+.PP
+Copy a file atomically:
+.PP
+.nf
+.RS
+zeugl -f input.txt output.txt
+.RE
+.fi
+.PP
+Write stdin to a file atomically:
+.PP
+.nf
+.RS
+echo "Hello, World!" | zeugl output.txt
+.RE
+.fi
+.PP
+Append to a file atomically:
+.PP
+.nf
+.RS
+echo "New line" | zeugl -a logfile.txt
+.RE
+.fi
+.PP
+Create a new file with specific permissions:
+.PP
+.nf
+.RS
+echo "content" | zeugl -c 600 private.txt
+.RE
+.fi
+.PP
+Truncate and write to a file:
+.PP
+.nf
+.RS
+echo "replacement" | zeugl -t existing.txt
+.RE
+.fi
+.SH ATOMIC OPERATIONS
+.PP
+The zeugl tool ensures atomicity by:
+.IP 1. 3
+Creating a temporary file in the same directory as the target file
+.IP 2. 3
+Writing all data to the temporary file
+.IP 3. 3
+Using atomic rename(2) to replace the target file
+.IP 4. 3
+Cleaning up the temporary file on error or interruption
+.PP
+This approach guarantees that readers of the target file will never see partial
+writes, even if the writing process is interrupted or crashes.
+.SH SEE ALSO
+.BR zopen (3),
+.BR zclose (3),
+.BR rename (2),
+.BR flock (2)
+.SH AUTHORS
+Written by the zeugl contributors.
+.SH BUGS
+Report bugs at: https://github.com/larsewi/zeugl/issues
+.SH COPYRIGHT
+Copyright (C) 2025 zeugl contributors.
+This is free software; see the source for copying conditions.

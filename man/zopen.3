@@ -1,0 +1,270 @@
+.TH ZOPEN 3 "January 2025" "zeugl" "Library Functions Manual"
+.SH NAME
+zopen, zclose \- atomic file operations
+.SH SYNOPSIS
+.nf
+.B #include <zeugl.h>
+.PP
+.BI "int zopen(const char *" filename ", int " flags ", ...);"
+.BI "int zclose(int " fd ", bool " commit );
+.fi
+.PP
+Link with \fI\-lzeugl\fR.
+.SH DESCRIPTION
+The zeugl library provides atomic file operations through a transaction-based
+interface. Files are modified by creating a temporary copy, modifying it, and
+then atomically replacing the original file.
+.SS zopen()
+The
+.BR zopen ()
+function begins an atomic file transaction by returning a file descriptor to
+a temporary copy of the file. The temporary file is always opened in read/write
+mode. Upon calling
+.BR zclose (),
+you can choose whether to commit the transaction by replacing the original file
+with the temporary file.
+.PP
+The
+.I filename
+argument specifies the file to start the transaction on. This file will be left
+unmodified until the transaction is committed by a call to
+.BR zclose ().
+.PP
+The
+.I flags
+argument can be zero or more of the following flags bitwise-ORed together:
+.TP
+.B Z_CREATE
+If filename does not exist, create it as a regular file. This flag requires
+the
+.I mode
+argument to be specified.
+.TP
+.B Z_APPEND
+The file offset is positioned at the end of the file instead of at the start.
+Unlike O_APPEND in
+.BR open (2),
+the file offset is not repositioned to the end before each write.
+.TP
+.B Z_TRUNCATE
+The content of the original file is never copied into the temporary copy.
+The temporary file starts empty.
+.TP
+.B Z_NOBLOCK
+The function does not block on advisory locking (file locks) and will not retry
+copying if it detects concurrent writes to the original file. In these cases,
+the function returns an error with errno set to EBUSY. Note that this flag
+does not guarantee the function won't block for other reasons.
+.PP
+The
+.I mode
+argument specifies the file mode bits to be applied when a new file is created.
+If Z_CREATE is not specified, then mode is ignored and can be omitted. The mode
+argument must be supplied if Z_CREATE is specified.
+.SS zclose()
+The
+.BR zclose ()
+function commits or aborts an atomic file transaction.
+.PP
+The
+.I fd
+argument is the file descriptor obtained from
+.BR zopen (),
+or \-1 for no operation.
+.PP
+The
+.I commit
+argument determines the action:
+.IP \(bu 2
+If
+.BR true ,
+the transaction is committed and the original file is atomically replaced
+by the temporary file.
+.IP \(bu 2
+If
+.BR false ,
+the transaction is aborted and the temporary file is removed.
+.PP
+If multiple processes commit a file transaction simultaneously,
+.BR zclose ()
+guarantees that the original file is replaced exactly once by one of the
+temporary files. Any remaining temporary files are deleted.
+.SH RETURN VALUE
+On success,
+.BR zopen ()
+returns a new file descriptor (a nonnegative integer).
+On error, \-1 is returned, and
+.I errno
+is set appropriately.
+.PP
+On success,
+.BR zclose ()
+returns zero. On error, \-1 is returned, and
+.I errno
+is set appropriately.
+.SH ERRORS
+.BR zopen ()
+and
+.BR zclose ()
+can fail with any of the errors specified for the underlying
+.BR open (2),
+.BR close (2),
+.BR mkstemp (3),
+and
+.BR rename (2)
+system calls.
+.PP
+Additionally,
+.BR zopen ()
+may fail with:
+.TP
+.B EBUSY
+The Z_NOBLOCK flag was specified and either the file is locked by another
+process or concurrent modification was detected.
+.PP
+.BR zclose ()
+may additionally fail with:
+.TP
+.B EINVAL
+The file descriptor was not obtained from
+.BR zopen ().
+.SH THREAD SAFETY
+When compiled with pthread support, the zeugl library is thread-safe.
+Multiple threads can safely call
+.BR zopen ()
+and
+.BR zclose ()
+concurrently.
+.SH NOTES
+.PP
+Between
+.BR zopen ()
+and
+.BR zclose (),
+you can use standard I/O operations such as
+.BR read (2),
+.BR write (2),
+.BR lseek (2),
+.BR fstat (2),
+etc., just as you would with a regular file descriptor.
+.PP
+The temporary files created by
+.BR zopen ()
+are automatically cleaned up if the process terminates unexpectedly
+(via signal handlers installed by the library). Any already existing signal handlers before the first call to
+.BR zopen ()
+are chained.
+.PP
+There are measures to detect if another process is writing to the original
+file while
+.BR zopen ()
+creates the temporary copy. However, this cannot be guaranteed unless
+other processes modifying the file respect advisory locks (file locks).
+Upon detecting concurrent writes,
+.BR zopen ()
+will continuously retry copying unless the Z_NOBLOCK flag is set.
+.PP
+The atomic rename operation requires that the temporary file and the
+target file be on the same filesystem.
+.SH EXAMPLES
+.PP
+Simple atomic file write:
+.PP
+.nf
+#include <zeugl.h>
+#include <stdbool.h>
+#include <unistd.h>
+#include <string.h>
+
+int main() {
+    int fd = zopen("output.txt", Z_CREATE | Z_TRUNCATE, 0644);
+    if (fd < 0) {
+        perror("zopen");
+        return 1;
+    }
+
+    const char *data = "Hello, atomic world!\\n";
+    write(fd, data, strlen(data));
+
+    if (zclose(fd, true) < 0) {
+        perror("zclose");
+        return 1;
+    }
+
+    return 0;
+}
+.fi
+.PP
+Appending to a file atomically:
+.PP
+.nf
+#include <zeugl.h>
+#include <stdbool.h>
+#include <unistd.h>
+#include <string.h>
+
+int fd = zopen("logfile.txt", Z_APPEND);
+if (fd < 0) {
+    perror("zopen");
+    return 1;
+}
+
+const char *log_entry = "New log entry\\n";
+write(fd, log_entry, strlen(log_entry));
+
+zclose(fd, true);
+.fi
+.PP
+Using Z_NOBLOCK to avoid blocking:
+.PP
+.nf
+#include <zeugl.h>
+#include <stdbool.h>
+#include <errno.h>
+#include <stdio.h>
+
+int fd = zopen("shared.txt", Z_NOBLOCK);
+if (fd < 0) {
+    if (errno == EBUSY) {
+        printf("File is locked or being modified\\n");
+    } else {
+        perror("zopen");
+    }
+    return 1;
+}
+
+// Perform operations...
+
+zclose(fd, true);
+.fi
+.PP
+Aborting a transaction:
+.PP
+.nf
+#include <zeugl.h>
+#include <stdbool.h>
+
+int fd = zopen("important.txt", 0);
+if (fd < 0) {
+    perror("zopen");
+    return 1;
+}
+
+// Perform some operations...
+// Decide to abort the transaction
+zclose(fd, false);  // Original file remains unchanged
+.fi
+.SH SEE ALSO
+.BR open (2),
+.BR close (2),
+.BR flock (2),
+.BR rename (2),
+.BR mkstemp (3),
+.BR zeugl (1)
+.SH AUTHORS
+Written by the zeugl contributors.
+.SH BUGS
+Report bugs at: https://github.com/larsewi/zeugl/issues
+.SH COPYRIGHT
+Copyright (C) 2025 zeugl contributors.
+This is free software; see the source for copying conditions.
