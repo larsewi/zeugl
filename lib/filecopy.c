@@ -80,8 +80,15 @@ bool safe_filecopy(int src, int dst, bool no_block) {
       return false;
     }
 
-    if ((sb_before.st_mtim.tv_sec == sb_after.st_mtim.tv_sec) &&
-        (sb_before.st_mtim.tv_nsec == sb_after.st_mtim.tv_nsec)) {
+    if (
+#ifdef __APPLE__
+        (sb_before.st_mtimespec.tv_sec == sb_after.st_mtimespec.tv_sec) &&
+        (sb_before.st_mtimespec.tv_nsec == sb_after.st_mtimespec.tv_nsec)
+#else
+        (sb_before.st_mtim.tv_sec == sb_after.st_mtim.tv_sec) &&
+        (sb_before.st_mtim.tv_nsec == sb_after.st_mtim.tv_nsec)
+#endif
+    ) {
       LOG_DEBUG(
           "Source file (fd = %d) appears to not be modified during file copy",
           src);
