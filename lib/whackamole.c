@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "immutable.h"
 #include "logger.h"
 #include "whackamole.h"
 
@@ -57,7 +58,7 @@ static bool is_a_mole(const char *orig, const char *mole) {
   return true;
 }
 
-bool whack_a_mole(const char *orig, const char *temp) {
+bool whack_a_mole(const char *orig, const char *temp, bool handle_immutable) {
   bool success = false;
   DIR *dirp = NULL;
   char *mole = NULL;
@@ -139,10 +140,31 @@ bool whack_a_mole(const char *orig, const char *temp) {
   }
   LOG_DEBUG("Reached End-of-Directory '%s'", dname);
 
+  bool was_immutable = false;
+  if (handle_immutable) {
+    was_immutable = is_immutable(orig);
+    if (was_immutable) {
+      if (clear_immutable(orig)) {
+        LOG_DEBUG("Temporarily cleared immutable attribute from '%s'", orig);
+      } else {
+        LOG_DEBUG("Failed to temporarily clear immutable attribute from '%s'",
+                  orig);
+      }
+    }
+  }
+
   if (rename(survivor, orig) == 0) {
     LOG_DEBUG(
         "Replaced the last survivor (mole '%s') with the original file '%s'",
         survivor, orig);
+
+    if (handle_immutable && was_immutable) {
+      if (set_immutable(orig)) {
+        LOG_DEBUG("Restored immutable bit on '%s'", orig);
+      } else {
+        LOG_DEBUG("Failed to restore the immutable bit on '%s'", orig);
+      }
+    }
   } else {
     /* We don't really care if it fails. It just means that another agent
      * adopted the mole and beat us to it. */

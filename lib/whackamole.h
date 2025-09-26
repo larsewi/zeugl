@@ -3,6 +3,6 @@
 
 #include <stdbool.h>
 
-bool whack_a_mole(const char *orig, const char *temp);
+bool whack_a_mole(const char *orig, const char *temp, bool handle_immutable);
 
 #endif /* __ZEUGL_WACKAMOLE_H__ */

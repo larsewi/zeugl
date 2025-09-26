@@ -30,6 +30,7 @@ struct zfile {
   char *mole;
   int fd;
   mode_t mode;
+  int flags;
   struct zfile *next;
 };
 
@@ -89,6 +90,7 @@ int zopen(const char *fname, int flags, ...) {
     return -1;
   }
   file->fd = -1;
+  file->flags = flags;
 
   file->orig = strdup(fname);
   if (file->orig == NULL) {
@@ -225,8 +227,8 @@ int zopen(const char *fname, int flags, ...) {
   file->next = OPEN_FILES;
   OPEN_FILES = file;
   LOG_DEBUG("Added file to list of open files "
-            "(orig = '%s', temp = '%s', fd = %d, mode = %04jo)",
-            file->orig, file->temp, file->fd, file->mode);
+            "(orig = '%s', temp = '%s', fd = %d, mode = %04jo, flags = 0x%08x)",
+            file->orig, file->temp, file->fd, file->mode, file->flags);
 
   /* Install cleanup handlers on first successful file creation.
    * This only happens the first time this function is called.
@@ -331,7 +333,7 @@ int zclose(int fd, bool commit) {
     LOG_DEBUG("Changed file mode for file '%s' to %04jo", file->temp,
               (uintmax_t)file->mode);
 
-    if (!whack_a_mole(file->orig, file->temp)) {
+    if (!whack_a_mole(file->orig, file->temp, file->flags & Z_IMMUTABLE)) {
       LOG_DEBUG("Failed to execute wack-a-mole algorithm "
                 "(orig = '%s', temp = '%s'): %s",
                 file->orig, file->temp, strerror(errno));

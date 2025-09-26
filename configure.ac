@@ -60,7 +60,9 @@ AC_CHECK_HEADERS([fcntl.h
                   unistd.h
                   sys/file.h
                   stdint.h
-                  inttypes.h])
+                  inttypes.h
+                  linux/fs.h
+                  sys/ioctl.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_SIZE_T
@@ -74,7 +76,8 @@ AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
 AC_CHECK_FUNCS([strerror
                 stpcpy
                 strdup
-                strtoul])
+                strtoul
+                chflags])
 
 AC_CONFIG_TESTDIR([tests])
 AC_CONFIG_FILES([Makefile
