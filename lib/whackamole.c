@@ -77,44 +77,46 @@ static bool replace_original(const char *orig, const char *survivor) {
   return (errno == ENOENT);
 }
 
-static bool replace_immutable_original(const char *orig, const char *survivor,
-                                       bool handle_immutable) {
-  bool was_immutable = handle_immutable ? is_immutable(orig) : false;
-  if (!was_immutable) {
-    return replace_original(orig, survivor);
-  }
+// static bool replace_immutable_original(const char *orig, const char *survivor,
+//                                        bool handle_immutable) {
+//   bool was_immutable = handle_immutable ? is_immutable(orig) : false;
+//   if (!was_immutable) {
+//     return replace_original(orig, survivor);
+//   }
 
-  if (clear_immutable(orig)) {
-    LOG_DEBUG("Temporarily cleared immutable attribute from '%s'", orig);
-  } else {
-    LOG_DEBUG("Failed to temporarily clear immutable attribute from '%s'",
-              orig);
-    return false;
-  }
+//   if (clear_immutable(orig)) {
+//     LOG_DEBUG("Temporarily cleared immutable attribute from '%s'", orig);
+//   } else {
+//     LOG_DEBUG("Failed to temporarily clear immutable attribute from '%s'",
+//               orig);
+//     return false;
+//   }
 
-  if (!replace_original(orig, survivor)) {
-    /* Error is already logged */
-    return false;
-  }
+//   if (!replace_original(orig, survivor)) {
+//     /* Error is already logged */
+//     return false;
+//   }
 
-  /* Restore immutable bit before releasing lock */
-  if (!set_immutable(orig)) {
-    LOG_DEBUG("Failed to restore the immutable bit on '%s'", orig);
-    return false;
-  }
-  LOG_DEBUG("Restored immutable bit on '%s'", orig);
+//   /* Restore immutable bit before releasing lock */
+//   if (!set_immutable(orig)) {
+//     LOG_DEBUG("Failed to restore the immutable bit on '%s'", orig);
+//     return false;
+//   }
+//   LOG_DEBUG("Restored immutable bit on '%s'", orig);
 
-  return true;
-}
+//   return true;
+// }
 
-static bool atomic_replace_immutable_original(const char *orig,
+static bool replace_immutable_original(const char *orig,
                                               const char *survivor,
                                               bool handle_immutable,
                                               bool no_block) {
   bool success = false;
+  int lock_fd = -1;
 
-  /* Open original file for locking before clearing immutable flag */
-  int lock_fd = open(orig, O_RDONLY);
+  /* First, try to open and lock the file while it's still immutable.
+   * This ensures we have exclusive access before modifying immutability. */
+  lock_fd = open(orig, O_RDONLY);
   if (lock_fd < 0) {
     if (errno == ENOENT) {
       /* Original file doesn't exist yet - this is fine for new files */
@@ -137,32 +139,65 @@ static bool atomic_replace_immutable_original(const char *orig,
     LOG_DEBUG("Failed to acquire exclusive lock on '%s' (fd = %d): %s", orig,
               lock_fd, strerror(errno));
     close(lock_fd);
-    goto FAIL;
+    return false;
   }
   LOG_DEBUG("Acquired exclusive lock on '%s' (fd = %d)", orig, lock_fd);
 
-  if (!replace_immutable_original(orig, survivor, handle_immutable)) {
+  /* Now that we have the lock, clear immutable if needed.
+   * Always clear if handle_immutable is set, regardless of current state,
+   * because another process may have already cleared it. */
+  if (handle_immutable) {
+    if (clear_immutable(orig)) {
+      LOG_DEBUG("Cleared immutable attribute from '%s' while holding lock",
+                orig);
+    } else {
+      LOG_DEBUG("Failed to clear immutable attribute from '%s'", orig);
+      goto FAIL;
+    }
+  }
+
+  /* Do the rename while holding the lock */
+  if (!replace_original(orig, survivor)) {
     /* Error already logged */
+    /* Try to restore immutable flag if we cleared it */
+    if (handle_immutable) {
+      set_immutable(orig);
+    }
     goto FAIL;
+  }
+
+  /* Restore immutable bit on the new file before releasing lock.
+   * Always restore if handle_immutable is set, since we're the last process
+   * to complete the operation while holding the lock. */
+  if (handle_immutable) {
+    if (!set_immutable(orig)) {
+      LOG_DEBUG("Failed to restore the immutable bit on '%s'", orig);
+      /* Don't fail here - the rename succeeded */
+    } else {
+      LOG_DEBUG("Restored immutable bit on '%s'", orig);
+    }
   }
 
   success = true;
 FAIL:;
   int save_errno = errno;
 
-  if (flock(lock_fd, LOCK_UN) == 0) {
-    LOG_DEBUG("Released exclusive lock on file (fd = %d)", orig, lock_fd);
-  } else {
-    LOG_DEBUG("Failed to release exclusive lock on original file (fd = %d): %s",
-              orig, strerror(errno));
-    success = false;
-  }
+  if (lock_fd >= 0) {
+    if (flock(lock_fd, LOCK_UN) == 0) {
+      LOG_DEBUG("Released exclusive lock on file (fd = %d)", lock_fd);
+    } else {
+      LOG_DEBUG("Failed to release exclusive lock on original file (fd = %d): "
+                "%s",
+                lock_fd, strerror(errno));
+      success = false;
+    }
 
-  if (close(lock_fd) == 0) {
-    LOG_DEBUG("Closed original file '%s'", orig);
-  } else {
-    LOG_DEBUG("Failed to close original file '%s' (fd = %d)", orig, lock_fd);
-    success = false;
+    if (close(lock_fd) == 0) {
+      LOG_DEBUG("Closed original file '%s'", orig);
+    } else {
+      LOG_DEBUG("Failed to close original file '%s' (fd = %d)", orig, lock_fd);
+      success = false;
+    }
   }
 
   errno = save_errno;
@@ -252,7 +287,7 @@ bool whack_a_mole(const char *orig, const char *temp, bool handle_immutable,
   }
   LOG_DEBUG("Reached End-of-Directory '%s'", dname);
 
-  if (!atomic_replace_immutable_original(orig, survivor, handle_immutable,
+  if (!replace_immutable_original(orig, survivor, handle_immutable,
                                          no_block)) {
     /* Error already logged */
     goto FAIL;
