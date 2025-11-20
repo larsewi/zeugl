@@ -30,6 +30,7 @@ AC_PROG_LN_S
 AC_PROG_MAKE_SET
 AC_PROG_MKDIR_P
 AM_PROG_AR
+AC_CANONICAL_HOST
 
 LT_INIT
 
@@ -51,6 +52,28 @@ else
 fi
 AM_CONDITIONAL([NDEBUG], [test "$debug" = "no"])
 
+# Checks for immutable bit support.
+
+AC_MSG_CHECKING([for immutable bit support])
+case "$host_os" in
+  linux*)
+    platform=linux
+    AC_MSG_RESULT([yes])
+    ;;
+  freebsd*|openbsd*|netbsd*|darwin*)
+    platform=bsd
+    AC_MSG_RESULT([yes])
+    ;;
+  *)
+    platform=other
+    AC_MSG_RESULT([no])
+    ;;
+esac
+
+AM_CONDITIONAL([IMMUTABLE_IOCTL], [test "$platform" = linux])
+AM_CONDITIONAL([IMMUTABLE_CHFLAGS], [test "$platform" = bsd])
+AM_CONDITIONAL([IMMUTABLE_WEAK], [test "$platform" = other])
+
 # Checks for libraries.
 AX_PTHREAD
 
@@ -60,7 +83,9 @@ AC_CHECK_HEADERS([fcntl.h
                   unistd.h
                   sys/file.h
                   stdint.h
-                  inttypes.h])
+                  inttypes.h
+                  linux/fs.h
+                  sys/ioctl.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_SIZE_T
@@ -74,7 +99,8 @@ AC_FUNC_LSTAT_FOLLOWS_SLASHED_SYMLINK
 AC_CHECK_FUNCS([strerror
                 stpcpy
                 strdup
-                strtoul])
+                strtoul
+                chflags])
 
 AC_CONFIG_TESTDIR([tests])
 AC_CONFIG_FILES([Makefile

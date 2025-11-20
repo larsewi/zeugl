@@ -15,7 +15,7 @@
 
 #define PRINT_USAGE(prog)                                                      \
   fprintf(stderr,                                                              \
-          "Usage: %s [-f INPUT_FILE] [-c MODE] [-a] [-t] [-d] [-v] [-h] "      \
+          "Usage: %s [-f INPUT_FILE] [-c MODE] [-a] [-t] [-i] [-d] [-v] [-h] " \
           "OUTPUT_FILE\n",                                                     \
           prog)
 
@@ -25,7 +25,7 @@ int main(int argc, char *argv[]) {
   mode_t mode = 0;
 
   int opt;
-  while ((opt = getopt(argc, argv, "f:c:atdvh")) != -1) {
+  while ((opt = getopt(argc, argv, "f:c:atidvh")) != -1) {
     switch (opt) {
     case 'f':
       input_fname = optarg;
@@ -51,6 +51,9 @@ int main(int argc, char *argv[]) {
       break;
     case 't':
       flags |= Z_TRUNCATE;
+      break;
+    case 'i':
+      flags |= Z_IMMUTABLE;
       break;
     case 'd':
 #if !NDEBUG
@@ -134,6 +137,7 @@ FAIL:
     LOG_DEBUG("Failed to %s transaction for file '%s' (fd = %d): %s",
               commit_transaction ? "commit" : "abort", output_fname, output_fd,
               strerror(errno));
+    return EXIT_FAILURE;
   }
 
   return exit_code;

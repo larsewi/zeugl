@@ -55,6 +55,22 @@ The function does not block on advisory locking (file locks) and will not retry
 copying if it detects concurrent writes to the original file. In these cases,
 the function returns an error with errno set to EBUSY. Note that this flag
 does not guarantee the function won't block for other reasons.
+.TP
+.B Z_IMMUTABLE
+Handle files with the immutable attribute. If the target file has the immutable
+attribute set (using
+.BR chattr (1)
+on Linux or
+.BR chflags (1)
+on BSD), this flag allows the file to be modified by temporarily clearing the attribute.
+.BR zopen ()
+will temporarily clear the attribute before performing the atomic replacement,
+then restore it on the new file. Without this flag, attempting to replace an
+immutable file will fail with errno set to EPERM.
+.IP
+.B Warning:
+The immutable bit toggling is not atomic. There is a brief window where the
+file exists without the immutable attribute set.
 .PP
 The
 .I mode
@@ -236,6 +252,27 @@ if (fd < 0) {
 // Perform operations...
 
 zclose(fd, true);
+.fi
+.PP
+Handling immutable files:
+.PP
+.nf
+#include <zeugl.h>
+#include <stdbool.h>
+#include <unistd.h>
+#include <string.h>
+
+// File has immutable attribute set via: chattr +i protected.txt
+int fd = zopen("protected.txt", Z_IMMUTABLE);
+if (fd < 0) {
+    perror("zopen");
+    return 1;
+}
+
+const char *data = "Updated content\\n";
+write(fd, data, strlen(data));
+
+zclose(fd, true);  // Immutable bit is preserved
 .fi
 .PP
 Aborting a transaction:
