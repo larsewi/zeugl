@@ -76,27 +76,26 @@ rm "$TESTFILE"
 
 # Test 3: Concurrent access with immutable
 # TODO: Make immutable bit flipping thread safe
-exit 0
 
-echo "Test 3: Concurrent access"
-echo "original" >"$TESTFILE"
-set_immutable
-
-# Launch multiple concurrent writes
-for i in {1..5}; do
-	echo "process$i" | "$ZEUGL" -di "$TESTFILE" &
-done
-wait
-
-# Verify file is still immutable and has content
-if ! is_immutable; then
-	echo "ERROR: File '$TESTFILE' is not immutable"
-	exit 1
-fi
-if ! [ -s "$TESTFILE" ]; then
-	echo "ERROR: Expected content for file '$TESTFILE', found '$(cat "$TESTFILE")'"
-fi
-clear_immutable
-rm "$TESTFILE"
-
-echo "All tests passed!"
+# echo "Test 3: Concurrent access"
+# echo "original" >"$TESTFILE"
+# set_immutable
+#
+# # Launch multiple concurrent writes
+# for i in {1..5}; do
+# 	echo "process$i" | "$ZEUGL" -di "$TESTFILE" &
+# done
+# wait
+#
+# # Verify file is still immutable and has content
+# if ! is_immutable; then
+# 	echo "ERROR: File '$TESTFILE' is not immutable"
+# 	exit 1
+# fi
+# if ! [ -s "$TESTFILE" ]; then
+# 	echo "ERROR: Expected content for file '$TESTFILE', found '$(cat "$TESTFILE")'"
+# fi
+# clear_immutable
+# rm "$TESTFILE"
+#
+# echo "All tests passed!"
