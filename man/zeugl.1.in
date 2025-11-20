@@ -7,6 +7,7 @@
 [\fI\-c MODE\fR]
 [\fI\-a\fR]
 [\fI\-t\fR]
+[\fI\-i\fR]
 [\fI\-d\fR]
 [\fI\-v\fR]
 [\fI\-h\fR]
@@ -39,6 +40,18 @@ rather than overwriting existing content.
 .TP
 .BR \-t
 Truncate the output file. The file will be emptied before writing new data.
+.TP
+.BR \-i
+Handle files with the immutable attribute. If the output file has the immutable
+attribute set (using
+.BR chattr (1)
+on Linux or
+.BR chflags (1)
+on BSD), this flag allows the file to be modified by temporarily clearing the attribute
+during the atomic replacement, then restoring it afterward.
+.B Warning:
+The immutable bit toggling is not atomic. There is a brief window where the
+file exists without the immutable attribute set.
 .TP
 .BR \-d
 Enable debug output. This will print detailed information about the atomic
@@ -95,6 +108,15 @@ Truncate and write to a file:
 .nf
 .RS
 echo "replacement" | @PACKAGE_NAME@ -t existing.txt
+.RE
+.fi
+.PP
+Update a file with the immutable attribute:
+.PP
+.nf
+.RS
+# File protected with: chattr +i protected.txt
+echo "new content" | @PACKAGE_NAME@ -i protected.txt
 .RE
 .fi
 .SH ATOMIC OPERATIONS
