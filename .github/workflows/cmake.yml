@@ -1,0 +1,28 @@
+name: Build with CMake
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  cmake:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create build directory
+        run: mkdir build
+
+      - name: Build project
+        run: cd build && cmake -DENABLE_DEBUG=ON ..
+
+      - name: Install zeugl
+        run: sudo make -C build install
+
+      - name: Test zeugl
+        run: LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib" zeugl -v
