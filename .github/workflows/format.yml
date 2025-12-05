@@ -7,7 +7,7 @@ on:
     branches: [master]
 
 jobs:
-  check:
+  check-format:
     runs-on: ubuntu-latest
     permissions:
       contents: read

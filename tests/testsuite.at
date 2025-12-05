@@ -220,12 +220,13 @@ AT_CLEANUP
 ########################################
 
 AT_SETUP([Test multiprocess file manipulation])
+FIND_ZEUGL
 
 # Make sure shell script is executable
-chmod +x "$abs_top_builddir/tests/test_multiprocess.sh"
+chmod +x "$abs_top_srcdir/tests/test_multiprocess.sh"
 
 # Run multiprocess test
-AT_CHECK(["$abs_top_builddir/tests/test_multiprocess.sh" 128 $((20 * 1024 * 1024)) testfile], [0], [ignore])
+AT_CHECK(["$abs_top_srcdir/tests/test_multiprocess.sh" "$zeugl" 128 $((20 * 1024 * 1024)) testfile], [0], [ignore])
 
 AT_CLEANUP
 
@@ -298,7 +299,8 @@ AT_SKIP_IF([! command -v cppcheck])
 
 AT_CHECK([cppcheck --force --error-exitcode=1 --check-level=exhaustive \
 --enable=all --disable=missingInclude --include="$abs_top_builddir"/config.h \
--I "$abs_top_builddir"/ -I "$abs_top_builddir"/lib/ "$abs_top_builddir"],
+-I "$abs_top_srcdir"/ -I "$abs_top_srcdir"/include/ \
+-I "$abs_top_srcdir"/lib/ "$abs_top_srcdir"],
 [0], [ignore], [ignore])
 
 AT_CLEANUP
@@ -311,7 +313,7 @@ AT_SETUP([Static check shell scripts])
 AT_SKIP_IF([! command -v shellcheck])
 
 # Run shellcheck on all shell files
-for file in "$abs_top_builddir"/**/*.sh; do
+for file in "$abs_top_srcdir"/tests/*.sh; do
     AT_CHECK([shellcheck "$file"])
 done
 
