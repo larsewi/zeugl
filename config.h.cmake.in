@@ -1,0 +1,70 @@
+/* config.h.  Generated from config.h.cmake.in by CMake.  */
+
+/* Define to 1 if you have the <fcntl.h> header file. */
+#cmakedefine HAVE_FCNTL_H 1
+
+/* Define to 1 if you have the <unistd.h> header file. */
+#cmakedefine HAVE_UNISTD_H 1
+
+/* Define to 1 if you have the <sys/file.h> header file. */
+#cmakedefine HAVE_SYS_FILE_H 1
+
+/* Define to 1 if you have the <stdint.h> header file. */
+#cmakedefine HAVE_STDINT_H 1
+
+/* Define to 1 if you have the <inttypes.h> header file. */
+#cmakedefine HAVE_INTTYPES_H 1
+
+/* Define to 1 if you have the <linux/fs.h> header file. */
+#cmakedefine HAVE_LINUX_FS_H 1
+
+/* Define to 1 if you have the <sys/ioctl.h> header file. */
+#cmakedefine HAVE_SYS_IOCTL_H 1
+
+/* Define to 1 if you have the <stdbool.h> header file. */
+#cmakedefine HAVE_STDBOOL_H 1
+
+/* Define to 1 if you have the `strerror' function. */
+#cmakedefine HAVE_STRERROR 1
+
+/* Define to 1 if you have the `stpcpy' function. */
+#cmakedefine HAVE_STPCPY 1
+
+/* Define to 1 if you have the `strdup' function. */
+#cmakedefine HAVE_STRDUP 1
+
+/* Define to 1 if you have the `strtoul' function. */
+#cmakedefine HAVE_STRTOUL 1
+
+/* Define to 1 if you have the `chflags' function. */
+#cmakedefine HAVE_CHFLAGS 1
+
+/* Define to 1 if you have the `malloc' function. */
+#cmakedefine HAVE_MALLOC 1
+
+/* Define to 1 if you have the `lstat' function. */
+#cmakedefine HAVE_LSTAT 1
+
+/* Buffer size used for file copying (default 64 KiB) */
+#define BUFFER_SIZE @BUFFER_SIZE@
+
+/* Define to the address where bug reports for this package should be sent. */
+#define PACKAGE_BUGREPORT "https://github.com/larsewi/zeugl/issues"
+
+/* Define to the full name of this package. */
+#define PACKAGE_NAME "zeugl"
+
+/* Define to the full name and version of this package. */
+#define PACKAGE_STRING "zeugl @PROJECT_VERSION@"
+
+/* Define to the one symbol short name of this package. */
+#define PACKAGE_TARNAME "zeugl"
+
+/* Define to the home page for this package. */
+#define PACKAGE_URL "https://github.com/larsewi/zeugl"
+
+/* Define to the version of this package. */
+#define PACKAGE_VERSION "@PROJECT_VERSION@"
+
+/* Version number of package */
+#define VERSION "@PROJECT_VERSION@"

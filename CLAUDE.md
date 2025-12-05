@@ -8,20 +8,24 @@ zeugl is a C library that provides atomic file operations with minimal API chang
 
 ## Build Commands
 
-### Initial Setup
+The project supports two build systems: **Autotools** (default) and **CMake**.
+
+### Autotools Build
+
+#### Initial Setup
 ```bash
 ./bootstrap.sh                       # Generate configure script
 ./configure                          # Configure the build
 ./configure --enable-debug           # Configure with debug flags (adds -g -O0 -Werror -Wall -Wextra)
 ```
 
-### Build
+#### Build
 ```bash
 make                                 # Build the library and CLI tool
 make -j$(nproc)                      # Build with parallel compilation
 ```
 
-### Test
+#### Test
 ```bash
 make check                           # Run the test suite
 cd tests && ./testsuite              # Run tests directly
@@ -30,16 +34,42 @@ cd tests && ./testsuite              # Run tests directly
 ./testsuite 5                        # Run specific test number
 ```
 
-### Format and Lint
+#### Format and Lint
 ```bash
 make format                          # Format C code with clang-format and shell scripts with shfmt
 ```
 
-### Clean
+#### Clean
 ```bash
 make clean                           # Clean build artifacts
 make distclean                       # Clean everything including configure artifacts
 make super-clean                     # Git clean -fxd (removes all untracked files)
+```
+
+### CMake Build
+
+#### Initial Setup
+```bash
+mkdir build && cd build              # Create build directory
+cmake ..                             # Configure the build
+cmake -DENABLE_DEBUG=ON ..           # Configure with debug flags (adds -g -O0 -Werror -Wall -Wextra)
+```
+
+#### Build
+```bash
+cmake --build .                      # Build the library and CLI tool
+cmake --build . -j$(nproc)           # Build with parallel compilation
+```
+
+#### Install
+```bash
+cmake --install .                    # Install library and headers (may require sudo)
+cmake --install . --prefix=/path     # Install to custom location
+```
+
+#### Clean
+```bash
+rm -rf build/                        # Clean build artifacts
 ```
 
 ## Code Architecture
@@ -82,4 +112,4 @@ make super-clean                     # Git clean -fxd (removes all untracked fil
 1. **Temporary Files**: Created with `.XXXXXX` suffix using mkstemp()
 2. **File Modes**: Preserves original file permissions, excluding setuid bit
 3. **Z_NOBLOCK Flag**: Prevents blocking on file locks and concurrent access detection
-4. **Build System**: Uses GNU Autotools (autoconf, automake, libtool)
+4. **Build Systems**: Supports both GNU Autotools (autoconf, automake, libtool) and CMake (3.12+)
