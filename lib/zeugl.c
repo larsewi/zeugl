@@ -177,7 +177,7 @@ int zopen(const char *fname, int flags, ...) {
       LOG_DEBUG("Using mode %04jo from original file '%s' (fd = %d)",
                 (uintmax_t)file->mode, file->orig, fd);
 
-      if (!atomic_filecopy(fd, file->fd, (flags | Z_NOBLOCK))) {
+      if (!zeugl_atomic_filecopy(fd, file->fd, (flags | Z_NOBLOCK))) {
         LOG_DEBUG("Failed to copy content from original file '%s' (fd = %d) "
                   "to temporary file '%s' (fd = %d): %s",
                   file->orig, fd, file->temp, file->fd, strerror(errno));
@@ -234,7 +234,7 @@ int zopen(const char *fname, int flags, ...) {
    * This only happens the first time this function is called.
    * Subsequent calls results in NOOP.
    */
-  install_signal_handlers(cleanup_open_files);
+  zeugl_install_signal_handlers(cleanup_open_files);
 
 #ifdef HAVE_PTHREAD
   ret = pthread_mutex_unlock(&OPEN_FILES_MUTEX);
@@ -333,8 +333,8 @@ int zclose(int fd, bool commit) {
     LOG_DEBUG("Changed file mode for file '%s' to %04jo", file->temp,
               (uintmax_t)file->mode);
 
-    if (!whack_a_mole(file->orig, file->temp, file->flags & Z_IMMUTABLE,
-                      file->flags & Z_NOBLOCK)) {
+    if (!zeugl_whack_a_mole(file->orig, file->temp, file->flags & Z_IMMUTABLE,
+                            file->flags & Z_NOBLOCK)) {
       LOG_DEBUG("Failed to execute wack-a-mole algorithm "
                 "(orig = '%s', temp = '%s'): %s",
                 file->orig, file->temp, strerror(errno));

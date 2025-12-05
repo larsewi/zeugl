@@ -7,11 +7,12 @@
 
 #else /* NDEBUG */
 
-#define LOG_DEBUG(...) LoggerLogMessage(__FILE__, __LINE__, __VA_ARGS__)
+#define LOG_DEBUG(...) zeugl_logger_log_message(__FILE__, __LINE__, __VA_ARGS__)
 
-void LoggerEnable();
+void zeugl_logger_enable();
 
-void LoggerLogMessage(const char *file, int line, const char *format, ...);
+void zeugl_logger_log_message(const char *file, int line, const char *format,
+                              ...);
 
 #endif /* NDEBUG */
 

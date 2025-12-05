@@ -79,12 +79,12 @@ static bool replace_original(const char *orig, const char *survivor) {
 
 static bool replace_immutable_original(const char *orig, const char *survivor,
                                        bool handle_immutable) {
-  bool was_immutable = handle_immutable ? is_immutable(orig) : false;
+  bool was_immutable = handle_immutable ? zeugl_is_immutable(orig) : false;
   if (!was_immutable) {
     return replace_original(orig, survivor);
   }
 
-  if (clear_immutable(orig)) {
+  if (zeugl_clear_immutable(orig)) {
     LOG_DEBUG("Temporarily cleared immutable attribute from '%s'", orig);
   } else {
     LOG_DEBUG("Failed to temporarily clear immutable attribute from '%s'",
@@ -98,7 +98,7 @@ static bool replace_immutable_original(const char *orig, const char *survivor,
   }
 
   /* Restore immutable bit before releasing lock */
-  if (!set_immutable(orig)) {
+  if (!zeugl_set_immutable(orig)) {
     LOG_DEBUG("Failed to restore the immutable bit on '%s'", orig);
     return false;
   }
@@ -169,8 +169,8 @@ FAIL:;
   return success;
 }
 
-bool whack_a_mole(const char *orig, const char *temp, bool handle_immutable,
-                  bool no_block) {
+bool zeugl_whack_a_mole(const char *orig, const char *temp,
+                        bool handle_immutable, bool no_block) {
   bool success = false;
   DIR *dirp = NULL;
   char *mole = NULL;

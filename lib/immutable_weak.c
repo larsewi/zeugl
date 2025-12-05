@@ -6,17 +6,17 @@
 #include "logger.h"
 #include "utils.h"
 
-bool is_immutable(NDEBUG_UNUSED const char *path) {
+bool zeugl_is_immutable(ZEUGL_NDEBUG_UNUSED const char *path) {
   LOG_DEBUG("Immutable operations not supported on this platform", path);
   return false;
 }
 
-bool clear_immutable(NDEBUG_UNUSED const char *path) {
+bool zeugl_clear_immutable(ZEUGL_NDEBUG_UNUSED const char *path) {
   LOG_DEBUG("Immutable operations not supported on this platform");
   return true;
 }
 
-bool set_immutable(NDEBUG_UNUSED const char *path) {
+bool zeugl_set_immutable(ZEUGL_NDEBUG_UNUSED const char *path) {
   LOG_DEBUG("Immutable operations not supported on this platform");
   return true;
 }

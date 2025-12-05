@@ -8,7 +8,7 @@
  * @param path Path to the file to check.
  * @return true if file is immutable, false otherwise.
  */
-bool is_immutable(const char *path);
+bool zeugl_is_immutable(const char *path);
 
 /**
  * @brief Remove immutable attribute from file.
@@ -16,13 +16,13 @@ bool is_immutable(const char *path);
  * @return true if immutable attribute was successfully cleared, false
  * otherwise.
  */
-bool clear_immutable(const char *path);
+bool zeugl_clear_immutable(const char *path);
 
 /**
  * @brief Set immutable attribute on file.
  * @param path Path to the file to modify.
  * @return true if immutable attribute was successfully set, false otherwise.
  */
-bool set_immutable(const char *path);
+bool zeugl_set_immutable(const char *path);
 
 #endif /* __ZEUGL_IMMUTABLE_H__ */
