@@ -5,7 +5,7 @@ AC_PREREQ([2.71])
 AC_INIT([zeugl], [0.0.1],
         [https://github.com/larsewi/zeugl/issues],
         [zeugl], [https://github.com/larsewi/zeugl])
-AC_CONFIG_SRCDIR([lib/zeugl.h])
+AC_CONFIG_SRCDIR([include/zeugl.h])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 
@@ -105,6 +105,7 @@ AC_CHECK_FUNCS([strerror
 AC_CONFIG_TESTDIR([tests])
 AC_CONFIG_FILES([Makefile
                  cli/Makefile
+                 include/Makefile
                  lib/Makefile
                  man/Makefile
                  tests/Makefile])

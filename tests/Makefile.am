@@ -32,12 +32,12 @@ $(srcdir)/package.m4: $(top_srcdir)/configure.ac
 $(TESTSUITE): $(TESTSOURCES) $(srcdir)/package.m4
 	$(AM_V_GEN) $(AUTOTEST) -I '$(srcdir)' -o $@.tmp $@.at; mv $@.tmp $@
 
-AM_CPPFLAGS = -I$(top_srcdir)/ -I$(top_srcdir)/lib/
+AM_CPPFLAGS = -I$(top_builddir)/ -I$(top_srcdir)/include/
 
 check_PROGRAMS = test_multithreaded test_cleanup
 
-test_multithreaded_LDADD = $(top_srcdir)/lib/libzeugl.la
+test_multithreaded_LDADD = $(top_builddir)/lib/libzeugl.la
 test_multithreaded_SOURCES = test_multithreaded.c
 
-test_cleanup_LDADD = $(top_srcdir)/lib/libzeugl.la
+test_cleanup_LDADD = $(top_builddir)/lib/libzeugl.la
 test_cleanup_SOURCES = test_cleanup.c
