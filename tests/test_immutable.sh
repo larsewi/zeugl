@@ -3,8 +3,8 @@ set -e
 
 # Test immutable bit handling across platforms
 # Usage: test_immutable.sh
+# WARNING: This test is not safe and requires you to install zeugl CLI tool
 
-ZEUGL="$(dirname "$0")"/../cli/zeugl
 TESTFILE="$(mktemp "immutable.XXXXXX")"
 
 case "$(uname -s)" in
@@ -50,7 +50,7 @@ trap cleanup EXIT
 echo "Test 1: Basic immutable handling"
 echo "original" >"$TESTFILE"
 set_immutable
-echo "modified" | "$ZEUGL" -di "$TESTFILE" | grep -E "immutable_(chflags|ioctl).c"
+echo "modified" | zeugl -di "$TESTFILE" | grep -E "immutable_(chflags|ioctl).c"
 content=$(cat "$TESTFILE")
 if [ "$content" != "modified" ]; then
 	echo "ERROR: Expected content 'modified', got '$content' for file '$TESTFILE'"
@@ -67,7 +67,7 @@ rm "$TESTFILE"
 echo "Test 2: Without Z_IMMUTABLE flag"
 echo "original" >"$TESTFILE"
 set_immutable
-if echo "modified" | "$ZEUGL" -d "$TESTFILE"; then
+if echo "modified" | zeugl -d "$TESTFILE"; then
 	echo "ERROR: Should have failed without -i flag"
 	exit 1
 fi
@@ -83,7 +83,7 @@ rm "$TESTFILE"
 #
 # # Launch multiple concurrent writes
 # for i in {1..5}; do
-# 	echo "process$i" | "$ZEUGL" -di "$TESTFILE" &
+# 	echo "process$i" | zeugl -di "$TESTFILE" &
 # done
 # wait
 #
