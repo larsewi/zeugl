@@ -26,22 +26,18 @@ jobs:
       - name: Create build directory
         run: mkdir build
 
-      - name: configure
-        working-directory: build
-        run: ../configure --enable-debug
+      - name: Configure project
+        run: cd build && ../configure --enable-debug
 
-      - name: Build
-        working-directory: build
-        run: make -j$(nproc)
+      - name: Build project
+        run: make -C build -j$(nproc)
 
       - name: Run tests
-        working-directory: build
-        run: make check
+        run: make -C build check
 
       - name: Upload test logs on failure
-        working-directory: build
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: test-logs
-          path: tests/testsuite.log
+          path: build/tests/**/testsuite.log

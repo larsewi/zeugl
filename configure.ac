@@ -32,6 +32,31 @@ AC_PROG_MKDIR_P
 AM_PROG_AR
 AC_CANONICAL_HOST
 
+AC_CHECK_PROGS([GIT], [git])
+AM_CONDITIONAL([HAVE_GIT], [test -n "$GIT"])
+if test -z "$GIT"; then
+    AC_MSG_WARN([git not found - some features may be unavailable])
+fi
+
+AC_CHECK_PROGS([SHFMT], [shfmt])
+AM_CONDITIONAL([HAVE_SHFMT], [test -n "$SHFMT"])
+if test -z "$SHFMT"; then
+    AC_MSG_WARN([shfmt not found - some features may be unavailable])
+fi
+
+AC_CHECK_PROGS([CLANG_FORMAT], [clang-format])
+AM_CONDITIONAL([HAVE_CLANG_FORMAT], [test -n "$CLANG_FORMAT"])
+if test -z "$CLANG_FORMAT"; then
+    AC_MSG_WARN([clang-format not found - some features may be unavailable])
+fi
+
+AC_CHECK_PROGS([CPPCHECK], [cppcheck])
+AM_CONDITIONAL([HAVE_CPPCHECK], [test -n "$CPPCHECK"])
+if test -z "$CPPCHECK"; then
+    AC_MSG_WARN([cppcheck not found - some features may be unavailable])
+fi
+
+
 LT_INIT
 
 

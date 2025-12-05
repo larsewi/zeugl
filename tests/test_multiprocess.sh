@@ -7,10 +7,10 @@ if [ $# -lt 3 ]; then
 fi
 
 # Global variables
-NUM_PROCESSES=$1
-NUM_BYTES=$2
-FILENAME=$3
-ZEUGL="$(dirname "$0")"/../cli/zeugl
+ZEUGL_PATH=$1
+NUM_PROCESSES=$2
+NUM_BYTES=$3
+FILENAME=$4
 PIDS=()
 
 # Initialize test file to correct size
@@ -25,7 +25,7 @@ function child_task {
 	fi
 
 	# Atomically write NUM_BYTES to FILENAME using zeugl
-	head -c "$NUM_BYTES" /dev/urandom | "$ZEUGL" "$FILENAME"
+	head -c "$NUM_BYTES" /dev/urandom | "$ZEUGL_PATH" "$FILENAME"
 
 	# Check that the file size is correct after running zeugl
 	num_bytes=$(stat -c %s "$FILENAME")
