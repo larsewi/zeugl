@@ -28,13 +28,19 @@ jobs:
       - name: Install dependencies
         run: ${{ matrix.deps_install }}
 
+      - name: Bootstrap project
+        run: ./bootstrap.sh
+
+      - name: Configure project
+        run: ./configure --enable-debug
+
       - name: Build zeugl
-        run: |
-          ./bootstrap.sh
-          ./configure --enable-debug
-          make
+        run: make -j$(nproc)
+
+      - name: Install zeugl
+        run: sudo make install
 
       - name: Test immutable operations
         run: |
           chmod +x tests/test_immutable.sh
-          sudo tests/test_immutable.sh
+          sudo LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib" tests/test_immutable.sh
