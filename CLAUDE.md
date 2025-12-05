@@ -74,12 +74,20 @@ rm -rf build/                        # Clean build artifacts
 
 ## Code Architecture
 
+### Public API (`include/`)
+- **zeugl.h**: Public header file with `zopen()` and `zclose()` API definitions and flags (`Z_CREATE`, `Z_APPEND`, `Z_TRUNCATE`, `Z_NOBLOCK`, `Z_IMMUTABLE`)
+
 ### Core Library (`lib/`)
-- **zeugl.h/c**: Main API providing `zopen()` and `zclose()` functions for atomic file operations
+- **zeugl.c**: Main implementation of `zopen()` and `zclose()` functions for atomic file operations
 - **filecopy.h/c**: File copying utilities with locking support
 - **whackamole.h/c**: Atomic file replacement using rename operations
+- **immutable.h/c**: Platform-agnostic API for checking and modifying file immutable attributes
+  - **immutable_chflags.c**: BSD/macOS implementation using chflags(2)
+  - **immutable_ioctl.c**: Linux implementation using ioctl(2) with FS_IOC_GETFLAGS/FS_IOC_SETFLAGS
+  - **immutable_weak.c**: Weak symbol fallback for platforms without immutable support
 - **logger.h/c**: Debug logging infrastructure
 - **signals.h/c**: Install signal handlers for cleaning up temporary files
+- **utils.h**: Internal utility macros and compiler attributes
 
 ### Key Design Patterns
 
@@ -89,22 +97,31 @@ rm -rf build/                        # Clean build artifacts
 
 3. **Thread Safety**: Uses pthread mutexes when compiled with pthread support to maintain a thread-safe list of open files
 
-4. **Error Handling**: All functions return negative values on error and set errno appropriately
+4. **Immutable File Support**: Automatically handles file immutable attributes across platforms (Linux, BSD/macOS) - temporarily clears immutable bit during operations when Z_IMMUTABLE flag is set, then restores it after commit
+
+5. **Error Handling**: All functions return negative values on error and set errno appropriately
 
 ### CLI Tool (`cli/`)
 - **main.c**: Command-line interface to the zeugl library
-- Usage: `zeugl [-f INPUT_FILE] [-c MODE] [-a] [-t] [-d] [-v] [-h] OUTPUT_FILE`
-  - `-f`: Input file (default: stdin)
-  - `-c`: Create file with specified mode (octal)
+- Usage: `zeugl [-f INPUT_FILE] [-c MODE] [-a] [-t] [-i] [-d] [-v] [-h] OUTPUT_FILE`
+  - `-f INPUT_FILE`: Input file (default: stdin)
+  - `-c MODE`: Create file with specified mode (octal)
   - `-a`: Append mode
   - `-t`: Truncate file
-  - `-d`: Debug output
+  - `-i`: Handle immutable files (temporarily clears immutable attribute)
+  - `-d`: Enable debug output
   - `-v`: Print version information
+  - `-h`: Print help message
 
 ### Testing (`tests/`)
 - Uses GNU Autotest framework
 - Test suite defined in `testsuite.at`
-- Includes unit tests for file operations and multi-threaded/multi-process scenarios
+- Includes unit tests for:
+  - Basic file operations
+  - Multi-threaded scenarios (`test_multithreaded.c`)
+  - Multi-process scenarios (`test_multiprocess.sh`)
+  - Immutable file handling (`test_immutable.sh`)
+  - Cleanup and signal handling (`test_cleanup.c`)
 - Static analysis tests for code formatting (clang-format, shfmt) and quality (cppcheck, shellcheck)
 
 ## Important Implementation Details
@@ -112,4 +129,9 @@ rm -rf build/                        # Clean build artifacts
 1. **Temporary Files**: Created with `.XXXXXX` suffix using mkstemp()
 2. **File Modes**: Preserves original file permissions, excluding setuid bit
 3. **Z_NOBLOCK Flag**: Prevents blocking on file locks and concurrent access detection
-4. **Build Systems**: Supports both GNU Autotools (autoconf, automake, libtool) and CMake (3.12+)
+4. **Z_IMMUTABLE Flag**: Enables handling of immutable files - automatically clears immutable attribute before operations and restores it after successful commit
+5. **Platform Support**: Immutable file support works on:
+   - Linux (using ioctl with FS_IOC_GETFLAGS/FS_IOC_SETFLAGS)
+   - BSD/macOS (using chflags with UF_IMMUTABLE/SF_IMMUTABLE)
+   - Other platforms (weak symbol fallback - operations succeed but don't enforce immutability)
+6. **Build Systems**: Supports both GNU Autotools (autoconf, automake, libtool) and CMake (3.12+)
