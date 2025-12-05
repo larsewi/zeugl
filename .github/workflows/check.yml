@@ -20,19 +20,26 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y shellcheck cppcheck
 
-      - name: Bootstrap
+      - name: Bootstrap project
         run: ./bootstrap.sh
 
-      - name: Configure
-        run: ./configure --enable-debug
+      - name: Create build directory
+        run: mkdir build
+
+      - name: configure
+        working-directory: build
+        run: ../configure --enable-debug
 
       - name: Build
+        working-directory: build
         run: make -j$(nproc)
 
       - name: Run tests
+        working-directory: build
         run: make check
 
       - name: Upload test logs on failure
+        working-directory: build
         if: failure()
         uses: actions/upload-artifact@v4
         with:
