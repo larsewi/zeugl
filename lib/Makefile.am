@@ -1,6 +1,4 @@
-AM_CPPFLAGS = -include $(top_builddir)/config.h
-
-include_HEADERS = zeugl.h
+AM_CPPFLAGS = -include $(top_builddir)/config.h -I$(top_srcdir)/include
 
 lib_LTLIBRARIES = libzeugl.la
 
