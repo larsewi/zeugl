@@ -1,6 +1,10 @@
 #ifndef __ZEUGL_ZEUGL_H__
 #define __ZEUGL_ZEUGL_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
 #include <stdbool.h>
 
 #define Z_CREATE 1 << 0
@@ -28,5 +32,9 @@ int zopen(const char *filename, int flags, ... /* mode_t mode */);
  * error errno is set to indicate the error.
  */
 int zclose(int fd, bool commit);
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
 
 #endif /* __ZEUGL_ZEUGL_H__ */
