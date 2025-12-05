@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
       break;
     case 'd':
 #if !NDEBUG
-      LoggerEnable();
+      zeugl_logger_enable();
 #endif
       break;
     case 'v':
@@ -105,7 +105,7 @@ int main(int argc, char *argv[]) {
     LOG_DEBUG("Opened input file '%s' (fd = %d)", input_fname, input_fd);
   }
 
-  if (!filecopy(input_fd, output_fd)) {
+  if (!zeugl_filecopy(input_fd, output_fd)) {
     LOG_DEBUG("Failed to write content from input file '%s' (fd = %d) to "
               "output file '%s' (fd = %d)",
               input_fname, input_fd, output_fname, output_fd);

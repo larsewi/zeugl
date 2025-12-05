@@ -11,7 +11,7 @@
 #include "filecopy.h"
 #include "logger.h"
 
-bool filecopy(int src, int dst) {
+bool zeugl_filecopy(int src, int dst) {
   char buffer[BUFFER_SIZE];
 
   int eof = 0;
@@ -59,7 +59,7 @@ bool filecopy(int src, int dst) {
   return true;
 }
 
-bool safe_filecopy(int src, int dst, bool no_block) {
+bool zeugl_safe_filecopy(int src, int dst, bool no_block) {
   struct stat sb_before, sb_after;
 
   bool done = false;
@@ -70,7 +70,7 @@ bool safe_filecopy(int src, int dst, bool no_block) {
       return false;
     }
 
-    if (!filecopy(src, dst)) {
+    if (!zeugl_filecopy(src, dst)) {
       return false;
     }
 
@@ -107,7 +107,7 @@ bool safe_filecopy(int src, int dst, bool no_block) {
   return true;
 }
 
-bool atomic_filecopy(int src, int dst, bool no_block) {
+bool zeugl_atomic_filecopy(int src, int dst, bool no_block) {
   bool success = false;
 
   int lock = LOCK_SH;
@@ -122,7 +122,7 @@ bool atomic_filecopy(int src, int dst, bool no_block) {
   }
   LOG_DEBUG("Requested shared lock for source file (fd = %d)", src);
 
-  if (!safe_filecopy(src, dst, no_block)) {
+  if (!zeugl_safe_filecopy(src, dst, no_block)) {
     LOG_DEBUG("Failed to copy content from source file (fd = %d) to "
               "destination file (fd = %d): %s",
               src, dst, strerror(errno));

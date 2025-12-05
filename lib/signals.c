@@ -61,7 +61,7 @@ static void signal_handler(int sig) {
   }
 }
 
-void install_signal_handlers(void (*cleanup_func)(void)) {
+void zeugl_install_signal_handlers(void (*cleanup_func)(void)) {
   /* We only install the handlers once */
   if (handlers_installed != 0) {
     return;

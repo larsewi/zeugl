@@ -9,9 +9,10 @@
 
 static int enabled = 0;
 
-void LoggerEnable(void) { enabled = 1; }
+void zeugl_logger_enable(void) { enabled = 1; }
 
-void LoggerLogMessage(const char *file, int line, const char *format, ...) {
+void zeugl_logger_log_message(const char *file, int line, const char *format,
+                              ...) {
   assert(file != NULL);
   assert(format != NULL);
 
@@ -24,7 +25,7 @@ void LoggerLogMessage(const char *file, int line, const char *format, ...) {
   va_list ap;
   va_start(ap, format);
 
-  NDEBUG_UNUSED int ret = vsnprintf(msg, sizeof(msg), format, ap);
+  ZEUGL_NDEBUG_UNUSED int ret = vsnprintf(msg, sizeof(msg), format, ap);
   assert(ret >= 0 && (size_t)ret < sizeof(msg));
 
   va_end(ap);

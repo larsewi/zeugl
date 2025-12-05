@@ -8,7 +8,7 @@
 #include "immutable.h"
 #include "logger.h"
 
-bool is_immutable(const char *path) {
+bool zeugl_is_immutable(const char *path) {
   struct stat st;
   if (stat(path, &st) == 0) {
     LOG_DEBUG("Retrieved file attributes for '%s'", path);
@@ -23,7 +23,7 @@ bool is_immutable(const char *path) {
   return immutable;
 }
 
-bool clear_immutable(const char *path) {
+bool zeugl_clear_immutable(const char *path) {
   struct stat st;
   if (stat(path, &st) == 0) {
     LOG_DEBUG("Retrieved file attributes for '%s'", path);
@@ -46,7 +46,7 @@ bool clear_immutable(const char *path) {
   return true;
 }
 
-bool set_immutable(const char *path) {
+bool zeugl_set_immutable(const char *path) {
   struct stat st;
   if (stat(path, &st) == 0) {
     LOG_DEBUG("Retrieved file attributes for '%s'", path);
