@@ -40,20 +40,21 @@ developers to achieve atomicity with just a few line modifications.
 
 ## Quick Start
 
-### Building
+### Building, testing and installing
 
-```bash
+  ```sh
 ./bootstrap.sh     # Bootstrap project
 ./configure        # Configure project
 make               # Build zeugl
-make check         # Run tests
-sudo make install  # Install the project
+make check         # Test zeugl
+sudo make install  # Install zeugl
 ```
 
-By default the library is installed to *_/usr/local/lib_* and you may want to
-add the following line to your *_~/.bashrc_*:
+By default autotools installs the library to *_/usr/local/lib_*. Hence, you may
+want to add the following line to your *_~/.bashrc_* so that programs can find
+it:
 
-```
+```bash
 export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib"
 ```
 
@@ -75,7 +76,7 @@ zclose(fd, true);  // Atomic replacement happens here
 The CLI tool is mainly used for testing, but can be used for updating files
 atomically on the command line or in shell scripts.
 
-```bash
+```sh
 # Atomically update a file
 echo "new content" | zeugl -c 644 output.txt
 ```
