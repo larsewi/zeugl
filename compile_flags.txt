@@ -1,2 +1,3 @@
 -I.
--Ilib/
+-Iinclude
+-Ilib
