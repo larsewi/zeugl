@@ -43,11 +43,18 @@ developers to achieve atomicity with just a few line modifications.
 ### Building
 
 ```bash
-./bootstrap.sh
-./configure
-make
-make check
-sudo make install
+./bootstrap.sh     # Bootstrap project
+./configure        # Configure project
+make               # Build zeugl
+make check         # Run tests
+sudo make install  # Install the project
+```
+
+By default the library is installed to *_/usr/local/lib_* and you may want to
+add the following line to your *_~/.bashrc_*:
+
+```
+export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib"
 ```
 
 ### Basic Usage
