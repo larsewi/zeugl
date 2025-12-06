@@ -1,8 +1,10 @@
 #!/bin/bash -e
 
+NUM_ARGS=4
+
 # Check arguments
-if [ $# -lt 3 ]; then
-	echo "error: Expected 3 arguments, got $#" >&2
+if [ $# -lt $NUM_ARGS ]; then
+	echo "error: Expected $NUM_ARGS arguments, got $#" >&2
 	exit 1
 fi
 
